@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Department, Faculty, NewDiploma, Promotion, StudentJointPromotion } from '../models/ModelsForUnivesity';
 import { fetchDepartmentByFacultyId } from '../api/Department';
 import { fetchPromotionByDepartmentId } from '../api/Promotion';
-import { v4 as uuidv4 } from 'uuid'; // Import UUID library for generating QR code
+import { v4 as uuidv4 } from 'uuid';
 import { CustomInput } from './Input';
+import QRCode from 'qrcode';
+import { PDFDocument, rgb, StandardFonts} from 'pdf-lib';
+import { toast } from 'react-toastify';
 
 interface AddDiplomaModalProps {
   isSubmitting: boolean;
@@ -21,8 +24,8 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
     libelle_titre: '',
     etudiant_id: '',
     fichier_url: '',
-    qr_code: uuidv4(), // Generate a unique QR code
-    date_delivrance: new Date().toISOString(), // Set the current date
+    qr_code: uuidv4(),
+    date_delivrance: new Date().toISOString(),
     lieu: 'Kinshasa'
   });
   const [selectedFaculty, setSelectedFaculty] = useState('');
@@ -35,6 +38,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
   const [fileError, setFileError] = useState(false);
   const fileInputRef = useRef<HTMLDivElement>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
 
   const applyInitialDiploma = () => {
     if (initialDiploma) {
@@ -100,6 +104,17 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
     fetchPromotions();
   }, [selectedDepartment]);
 
+  useEffect(() => {
+    QRCode.toDataURL(newDiploma.qr_code, { errorCorrectionLevel: 'H' }, function (err, url) {
+      if (err) {
+        console.error(err);
+        toast.error('Erreur lors de la génération du code QR');
+        return;
+      }
+      setQrCodeDataUrl(url);
+    });
+  }, [newDiploma.qr_code]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewDiploma((prevDiploma) => ({
@@ -108,10 +123,65 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    setSelectedFile(files && files.length > 0 ? files[0] : null);
-    setFileError(false);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files?.[0];
+    if (!files) return;
+
+    try {
+      const fileData = await files.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(fileData);
+      const firstPage = pdfDoc.insertPage(0);
+
+      const qrImageBytes = await fetch(qrCodeDataUrl).then(r => r.arrayBuffer());
+      const qrImage = await pdfDoc.embedPng(qrImageBytes);
+
+      const pageWidth = firstPage.getWidth();
+      const pageHeight = firstPage.getHeight();
+
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+      firstPage.drawImage(qrImage, {
+        x: pageWidth - 150,
+        y: pageHeight - 150,
+        width: 130,
+        height: 130,
+      });
+
+      firstPage.drawText('Université de Kinshasa', {
+        x: 20,
+        y: pageHeight - 50,
+        font,
+        size: 16,
+        color: rgb(0, 0, 0),
+      });
+
+      firstPage.drawText('Système de vérification sécurisé des diplômes', {
+        x: 20,
+        y: pageHeight - 70,
+        font,
+        size: 14,
+        color: rgb(0, 0, 0),
+      });
+
+      firstPage.drawText('@Copyright Danisi Kibeye', {
+        x: 20,
+        y: pageHeight - 150,
+        font,
+        size: 14,
+        color: rgb(0, 0, 0),
+      });
+
+      const modifiedPdfBytes = await pdfDoc.save();
+      const modifiedPdfFile = new File([modifiedPdfBytes], files.name, { type: 'application/pdf' });
+
+      setSelectedFile(modifiedPdfFile);
+      setFileError(false);
+    } catch (error) {
+      console.error('Error processing PDF:', error);
+      setFileError(true);
+      toast.error('Erreur lors du traitement du fichier PDF');
+      return;
+    }
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -130,8 +200,8 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
       libelle_titre: '',
       etudiant_id: '',
       fichier_url: '',
-      qr_code: uuidv4(), // Generate a unique QR code
-      date_delivrance: new Date().toISOString(), // Set the current date
+      qr_code: uuidv4(),
+      date_delivrance: new Date().toISOString(),
       lieu: 'Kinshasa'
     });
     setSelectedFaculty('');
@@ -205,7 +275,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                     <CustomInput idName='selectedDepartment' value={selectedDepartment} label='Département'
                       onChange={(e) => {
                         setSelectedDepartment(e.target.value);
-                        setSelectedPromotion(''); // Reset promotion selection
+                        setSelectedPromotion('');
                       }} className='' type='select' options={departments}
                     />
                   </div>
@@ -264,6 +334,14 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                       <div className="mt-2">
                         <p className="text-sm text-gray-500">Fichier sélectionné: {selectedFile.name}</p>
                       </div>
+                    )}
+                  </div>
+                  <div>
+                    <label htmlFor="qrCodeDataUrl" className="block text-sm font-medium text-gray-700">
+                      Aperçu du code QR
+                    </label>
+                    {qrCodeDataUrl && (
+                      <img src={qrCodeDataUrl} alt="QR Code" className="mt-1" />
                     )}
                   </div>
                 </div>

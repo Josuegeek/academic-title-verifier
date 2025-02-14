@@ -22,6 +22,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Types
 import { Profile } from './types';
+import { ToastContainer } from 'react-toastify';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -79,15 +80,16 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ToastContainer/>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<LandingPage user={user} />} />
         <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/dashboard" replace />} />
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute user={user} profile={profile} />}>
           {profile && <Route element={<Layout profile={profile} />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard profile={profile} />} />
             <Route path="/verify" element={<DiplomaVerification />} />
             
             {/* Admin only routes */}
@@ -101,7 +103,7 @@ function App() {
             {/* University staff routes */}
             {(profile?.role === 'admin' || profile?.role === 'university_staff') && (
               <>
-                <Route path="/diplomas" element={<DiplomaManagement />} />
+                <Route path="/diplomas" element={<DiplomaManagement profile={profile} />} />
                 <Route path="/faculties" element={<FacultyManagement />} />
                 <Route path="/departments" element={<DepartmentManagement />} />
                 <Route path="/promotions" element={<PromotionManagement />} />

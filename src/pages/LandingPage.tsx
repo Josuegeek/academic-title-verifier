@@ -1,8 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, Shield, Search, Users } from 'lucide-react';
+import { GraduationCap, Shield, Search, Users, CloudCog } from 'lucide-react';
 
-export function LandingPage() {
+interface LandingPageProps {
+  user: any | null;
+}
+
+export function LandingPage({ user }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -16,12 +20,21 @@ export function LandingPage() {
               </div>
             </div>
             <div className="flex items-center">
-              <Link
-                to="/auth"
-                className="ml-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                Connexion
-              </Link>
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="ml-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="ml-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Connexion
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -43,12 +56,21 @@ export function LandingPage() {
                 </p>
                 <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                   <div className="rounded-md shadow">
-                    <Link
-                      to="/auth"
-                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10"
-                    >
-                      Commencer
-                    </Link>
+                    {user ? (
+                      <Link
+                        to="/dashboard"
+                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10"
+                      >
+                        Aller au Dashboard
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/auth"
+                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10"
+                      >
+                        Commencer
+                      </Link>
+                    )}
                   </div>
                   <div className="mt-3 sm:mt-0 sm:ml-3">
                     <Link
@@ -111,6 +133,15 @@ export function LandingPage() {
                 <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Multi-utilisateurs</p>
                 <p className="mt-2 ml-16 text-base text-gray-500">
                   Différents niveaux d'accès pour les administrateurs et le personnel universitaire.
+                </p>
+              </div>
+              <div className="relative">
+                <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
+                  <CloudCog className="h-6 w-6" />
+                </div>
+                <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Blockchain</p>
+                <p className="mt-2 ml-16 text-base text-gray-500">
+                  Utilisation de la blockchain pour une transparence accrue, une sécurité renforcée et une vérification infalsifiable des diplômes.
                 </p>
               </div>
             </div>

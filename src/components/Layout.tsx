@@ -9,9 +9,9 @@ interface LayoutProps {
 
 export function Layout({ profile }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-100 flex max-md:flex-col">
+    <div className="h-screen bg-gray-100 flex max-md:flex-col">
       <Navbar profile={profile} />
-      <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 h-screen overflow-y-scroll py-6 px-4 sm:px-6 lg:px-8">
         <Outlet />
       </main>
     </div>

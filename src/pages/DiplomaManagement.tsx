@@ -1,40 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Edit, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { DiplomaJointStudent, Faculty, NewDiploma, StudentJointPromotion } from '../models/ModelsForUnivesity';
+import { addDiploma, deleteDiploma, fetchDiplomasJointStudent, updateDiploma } from '../api/Diploma';
+import { fetchStudentsJointPromotion } from '../api/Student';
+import { toast } from 'react-toastify';
+import { fetchFaculties } from '../api/Faculty';
 import { supabase } from '../lib/supabase';
-import { Plus, Search } from 'lucide-react';
+import AddDiplomaModal from '../components/AddDiplomaModal';
+import type { Profile } from '../types';
 
-interface Diploma {
-  id_titre: number;
-  libelle_titre: string;
-  etudiant: {
-    nom: string;
-    postnom: string;
-    prenom: string;
-  };
+interface DiplomaManagementProps {
+  profile: Profile;
 }
 
-export function DiplomaManagement() {
-  const [diplomas, setDiplomas] = useState<Diploma[]>([]);
+export function DiplomaManagement({ profile }: DiplomaManagementProps) {
+  const [diplomas, setDiplomas] = useState<DiplomaJointStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [students, setStudents] = useState<StudentJointPromotion[]>([]);
+  const [submittingError, setSubmittingError] = useState<string | null>(null);
+  const [isAddingDiploma, setIsAddingDiploma] = useState(false);
+  const [isEditingDiploma, setIsEditingDiploma] = useState(false);
+  const [currentDiploma, setCurrentDiploma] = useState<NewDiploma | null>(null);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchDiplomas();
-  }, []);
+    fetchFaculty();
+    fetchStudents();
+  }, [profile]);
 
   async function fetchDiplomas() {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('titre_academique')
-        .select(`
-          id,
-          libelle_titre,
-          etudiant:etudiant_id (
-            nom,
-            postnom,
-            prenom
-          )
-        `);
+      let query = supabase
+        .from("titre_academique")
+        .select<string, DiplomaJointStudent>(
+          `
+            id,
+            libelle_titre,
+            fichier_url,
+            qr_code,
+            date_delivrance,
+            lieu,
+            etudiant (
+                id,
+                nom,
+                postnom,
+                prenom
+            )
+            `
+        ).order('created_at', { ascending: false });
+
+      if (profile.role === 'university_staff' && profile.universite_id) {
+        query = query.eq('universite_id', profile.universite_id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setDiplomas(data || []);
@@ -45,12 +69,130 @@ export function DiplomaManagement() {
     }
   }
 
+  async function fetchStudents() {
+    try {
+      const { data: studentData, error: studentError } = await fetchStudentsJointPromotion();
+
+      if (studentError) throw studentError;
+      setStudents(studentData || []);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Une erreur est survenue lors du chargement des étudiants');
+    } finally {
+      //setLoading(false);
+    }
+  }
+
+  async function fetchFaculty() {
+    try {
+      const { data: facultyData, error: facultyError } = await fetchFaculties();
+
+      if (facultyError) throw facultyError;
+      setFaculties(facultyData || []);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Une erreur est survenue lors du chargement des facultés');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleAddDiplomaClick = () => {
+    setCurrentDiploma(null);
+    setIsAddingDiploma(true);
+  };
+
+  const handleEditDiplomaClick = (diploma: DiplomaJointStudent) => {
+    setCurrentDiploma({
+      libelle_titre: diploma.libelle_titre,
+      etudiant_id: diploma.etudiant?.id || '',
+      fichier_url: diploma.fichier_url,
+      qr_code: diploma.qr_code,
+      date_delivrance: diploma.date_delivrance,
+      lieu: diploma.lieu,
+    });
+    setIsEditingDiploma(true);
+  };
+
+  const handleCancelAddDiploma = () => {
+    setIsAddingDiploma(false);
+    setIsEditingDiploma(false);
+  };
+
+  const handleAddDiplomaSubmit = async (newDiploma: NewDiploma, selectedFile: File | null) => {
+    setIsSubmitting(true);
+    setSubmittingError(null);
+
+    try {
+      let fileUrl: string | null = null;
+
+      if (selectedFile) {
+        const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9]/g, '');
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('diploma-files')
+          .upload(`${newDiploma.etudiant_id}/${sanitizedFileName}`, selectedFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+          console.log(uploadData);
+          
+        if (uploadError) throw uploadError;
+
+        const { data, error: signedUrlError } = await supabase
+          .storage
+          .from('diploma-files')
+          .createSignedUrl(uploadData.path, 60 * 60 * 24 * 100);
+          console.log(data);
+        if (signedUrlError) throw signedUrlError;
+        
+        fileUrl = data?.signedUrl || null;
+      }
+
+      const { error: diplomaError } = currentDiploma
+        ? await updateDiploma(currentDiploma.etudiant_id, { ...newDiploma, fichier_url: fileUrl || "" })
+        : await addDiploma({ ...newDiploma, fichier_url: fileUrl || "" });
+
+      if (diplomaError) throw diplomaError;
+
+      toast.success('Diplôme ajouté avec succès !');
+      
+      fetchDiplomas();
+
+      setIsAddingDiploma(false); // Close modal
+      setIsEditingDiploma(false); // Close modal
+      setSubmittingError(null);
+    } catch (error) {
+      setSubmittingError(error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'ajout du diplôme.');
+      toast.error(error instanceof Error && error.message ? error.message : 'Une erreur est survenue lors de l\'ajout du diplôme.');
+      console.log(error);
+    } finally {
+      setIsSubmitting(false);
+      setSubmittingError(null);
+    }
+  };
+
+  const handleShowDiplomaFileClick = (diploma: DiplomaJointStudent) => {
+    window.open(diploma.fichier_url, '_blank');
+  };
+
+  const handleDeleteDiploma = async (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce diplôme ?')) {
+      try {
+        const { error } = await deleteDiploma(id);
+        if (error) throw error;
+        fetchDiplomas();
+        toast.success('Diplôme supprimé avec succès !');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Une erreur est survenue lors de la suppression du diplôme.');
+      }
+    }
+  };
+
   const filteredDiplomas = diplomas.filter((diploma) => {
     const searchString = searchTerm.toLowerCase();
     return (
       diploma.libelle_titre.toLowerCase().includes(searchString) ||
-      diploma.etudiant.nom.toLowerCase().includes(searchString) ||
-      diploma.etudiant.prenom.toLowerCase().includes(searchString)
+      diploma.etudiant?.nom.toLowerCase().includes(searchString) ||
+      diploma.etudiant?.prenom.toLowerCase().includes(searchString)
     );
   });
 
@@ -60,7 +202,7 @@ export function DiplomaManagement() {
         <h1 className="text-3xl font-bold text-gray-900">
           Gestion des diplômes
         </h1>
-        <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        <button onClick={handleAddDiplomaClick} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
           <Plus className="h-4 w-4 mr-2" />
           Nouveau diplôme
         </button>
@@ -77,7 +219,7 @@ export function DiplomaManagement() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-indigo-500 p-2 border focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
                 placeholder="Rechercher un diplôme..."
               />
             </div>
@@ -121,7 +263,7 @@ export function DiplomaManagement() {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {filteredDiplomas.map((diploma) => (
-                          <tr key={diploma.id_titre}>
+                          <tr key={diploma.id}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">
                                 {diploma.libelle_titre}
@@ -129,12 +271,27 @@ export function DiplomaManagement() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">
-                                {`${diploma.etudiant.nom} ${diploma.etudiant.postnom} ${diploma.etudiant.prenom}`}
+                                {`${diploma.etudiant?.nom} ${diploma.etudiant?.postnom} ${diploma.etudiant?.prenom}`}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button className="text-indigo-600 hover:text-indigo-900">
-                                Voir
+                              <button
+                                onClick={() => handleShowDiplomaFileClick(diploma)}
+                                className="text-indigo-600 hover:text-indigo-900 mr-4"
+                              >
+                                <Eye className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleEditDiplomaClick(diploma)}
+                                className="text-indigo-600 hover:text-indigo-900 mr-4"
+                              >
+                                <Edit className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDiploma(diploma.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <Trash2 className="h-5 w-5" />
                               </button>
                             </td>
                           </tr>
@@ -148,6 +305,17 @@ export function DiplomaManagement() {
           )}
         </div>
       </div>
+      {/* Add/Edit Diploma Modal */}
+      <AddDiplomaModal
+        isSubmitting={isSubmitting}
+        isOpen={isAddingDiploma || isEditingDiploma}
+        onClose={handleCancelAddDiploma}
+        onSubmit={handleAddDiplomaSubmit}
+        faculties={faculties}
+        students={students}
+        error={submittingError}
+        initialDiploma={currentDiploma}
+      />
     </div>
   );
 }

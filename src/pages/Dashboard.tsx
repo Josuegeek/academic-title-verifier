@@ -19,7 +19,11 @@ interface Stats {
   departments: number;
 }
 
-export function Dashboard() {
+interface DashboardProps {
+  profile: Profile;
+}
+
+export function Dashboard({ profile }: DashboardProps) {
   const [stats, setStats] = useState<Stats>({
     students: 0,
     diplomas: 0,
@@ -27,32 +31,34 @@ export function Dashboard() {
     departments: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    fetchProfile();
     fetchStats();
-  }, []);
-
-  const fetchProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      setProfile(data);
-    }
-  };
+  }, [profile]);
 
   const fetchStats = async () => {
+    setLoading(true);
     try {
+      let studentsQuery = supabase.from('etudiant').select('id', { count: 'exact' });
+      let diplomasQuery = supabase.from('titre_academique').select('id', { count: 'exact' });
+      let facultiesQuery = supabase.from('faculte').select('id', { count: 'exact' });
+      let departmentsQuery = supabase.from('departement').select('id', { count: 'exact' });
+
+      if (profile.role === 'university_staff' && profile.universite_id) {
+        // Filter queries based on the university ID
+        const universityId = profile.universite_id;
+
+        diplomasQuery = diplomasQuery.eq('universite_id', universityId);
+        facultiesQuery = facultiesQuery.eq('universite_id', universityId);
+        departmentsQuery = departmentsQuery.eq('universite_id', universityId);
+        studentsQuery = studentsQuery.eq('universite_id', universityId);
+      }
+
       const [students, diplomas, faculties, departments] = await Promise.all([
-        supabase.from('etudiant').select('id', { count: 'exact' }),
-        supabase.from('titre_academique').select('id', { count: 'exact' }),
-        supabase.from('faculte').select('id', { count: 'exact' }),
-        supabase.from('departement').select('id', { count: 'exact' }),
+        studentsQuery,
+        diplomasQuery,
+        facultiesQuery,
+        departmentsQuery,
       ]);
 
       setStats({

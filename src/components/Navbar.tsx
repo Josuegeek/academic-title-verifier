@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import {
   GraduationCap,
   LayoutDashboard,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
+import { useEffect, useRef } from 'react';
 
 interface NavbarProps {
   profile: Profile;
@@ -33,15 +34,36 @@ export function Navbar({ profile }: NavbarProps) {
     navigate('/');
   };
 
+const dropdownRef = useRef<HTMLDivElement>(null);
+const burgerRef = useRef<HTMLButtonElement>(null);
+
+useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (
+            dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+            burgerRef.current && !burgerRef.current.contains(event.target as Node)
+        ) {
+            setDropdownOpen(false);
+            setBurgerOpen(false);
+        }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+}, []);
+
   return (
     <div className="bg-white shadow-sm md:h-full relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 max-[1200px]:px-1">
         <div className="flex flex-col md:h-screen max-md:w-auto max-md:overflow-visible max-[1200px]:w-12 max-[1200px]:overflow-hidden">
           {/* Top Bar (Burger Menu, Logo, and User Dropdown) */}
-          <div className="flex items-center justify-between h-16">
+          <div className="flex flex-wrap items-center justify-between py-3 rounded-lg bg-gray-200 h-fit lg:max-w-56">
             {/* Burger menu button (show on small screens) */}
             <div className="md:hidden">
               <button
+              ref={burgerRef}
                 onClick={() => setBurgerOpen(!burgerOpen)}
                 className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
                 aria-expanded="false"
@@ -53,26 +75,28 @@ export function Navbar({ profile }: NavbarProps) {
 
             {/* Logo (hide on small screens when burger is active) */}
             <div className={`flex items-center ${burgerOpen ? '' : 'md:flex'}`}>
-              <GraduationCap className="h-8 w-8 text-indigo-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">DiplomaVerify</span>
+              <Link className='flex' to="/">
+                <GraduationCap className="h-8 w-8 text-indigo-600" />
+                <span className="ml-2 text-xl font-bold text-gray-900">DiplomaVerify</span>
+              </Link>
             </div>
 
             {/* User Dropdown (always on top right on small screens) */}
-            <div className="relative">
+            <div ref={dropdownRef} className="relative max-[1200px]:absolute max-md:relative max-md:bottom-0 max-[1200px]:bottom-7 z-20">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center space-x-2 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-expanded="false"
                 aria-haspopup="true"
               >
-                <User className="h-6 w-6 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 hidden md:inline">{profile.role}</span>
+                <User className="h-6 w-6 text-gray-700" />
+                <span className="text-sm font-medium text-gray-700 max-[1200px]:hidden ">{profile.nom} {profile.postnom} ({profile.role})</span>
                 <ChevronDown className={`h-4 w-4 text-gray-500 transition transform ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown menu */}
               <div
-                className={`absolute right-0 w-48 mt-2 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none ${dropdownOpen ? '' : 'hidden'}`}
+                className={`absolute right-0 w-48 mt-2 rounded-md shadow-lg z-20 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none ${dropdownOpen ? '' : 'hidden'} ${dropdownOpen && 'max-[1200px]:-top-24 max-[1200px]:-right-36 max-md:right-0 max-md:top-10'}`}
                 role="menu"
                 aria-orientation="vertical"
                 aria-labelledby="user-menu-button"
