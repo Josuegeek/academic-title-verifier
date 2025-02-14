@@ -1,96 +1,102 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-interface Faculty {
+interface University {
   id: string;
-  libelle_fac: string;
+  libelle_univ: string;
   created_at: string;
 }
 
-export function FacultyManagement() {
-  const [faculties, setFaculties] = useState<Faculty[]>([]);
+export function UniversityManagement() {
+  const [universities, setUniversities] = useState<University[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newFaculty, setNewFaculty] = useState('');
-  const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [newUniversity, setNewUniversity] = useState('');
+  const [editingUniversity, setEditingUniversity] = useState<University | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchFaculties();
+    fetchUniversities();
   }, []);
 
-  const fetchFaculties = async () => {
+  const fetchUniversities = async () => {
     try {
       const { data, error } = await supabase
-        .from('faculte')
+        .from('universite')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setFaculties(data || []);
+      setUniversities(data || []);
     } catch (error) {
-      console.error('Error fetching faculties:', error);
-      setError('Erreur lors du chargement des facultés');
+      console.error('Error fetching universities:', error);
+      setError('Erreur lors du chargement des universités');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddFaculty = async (e: React.FormEvent) => {
+  const handleAddUniversity = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFaculty.trim()) return;
+    if (!newUniversity.trim()) return;
 
     try {
       const { error } = await supabase
-        .from('faculte')
-        .insert([{ libelle_fac: newFaculty.trim() }]);
+        .from('universite')
+        .insert([{ libelle_univ: newUniversity.trim() }]);
 
       if (error) throw error;
-      setNewFaculty('');
-      fetchFaculties();
+      setNewUniversity('');
+      fetchUniversities();
     } catch (error) {
-      console.error('Error adding faculty:', error);
-      setError('Erreur lors de l\'ajout de la faculté');
+      console.error('Error adding university:', error);
+      setError('Erreur lors de l\'ajout de l\'université');
     }
   };
 
-  const handleUpdateFaculty = async (e: React.FormEvent) => {
+  const handleUpdateUniversity = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingFaculty) return;
+    if (!editingUniversity) return;
 
     try {
       const { error } = await supabase
-        .from('faculte')
-        .update({ libelle_fac: editingFaculty.libelle_fac })
-        .eq('id', editingFaculty.id);
+        .from('universite')
+        .update({ libelle_univ: editingUniversity.libelle_univ })
+        .eq('id', editingUniversity.id);
 
       if (error) throw error;
-      setEditingFaculty(null);
-      fetchFaculties();
+      setEditingUniversity(null);
+      fetchUniversities();
     } catch (error) {
-      console.error('Error updating faculty:', error);
-      setError('Erreur lors de la mise à jour de la faculté');
+      console.error('Error updating university:', error);
+      setError('Erreur lors de la mise à jour de l\'université');
     }
   };
 
-  const handleDeleteFaculty = async (id: string) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette faculté ?')) {
+  const handleDeleteUniversity = async (id: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette université ?')) {
       return;
     }
 
     try {
       const { error } = await supabase
-        .from('faculte')
+        .from('universite')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
-      fetchFaculties();
+      fetchUniversities();
     } catch (error) {
-      console.error('Error deleting faculty:', error);
-      setError('Erreur lors de la suppression de la faculté');
+      console.error('Error deleting university:', error);
+      setError('Erreur lors de la suppression de l\'université');
     }
   };
+
+  const filteredUniversities = universities.filter((university) => {
+    const searchString = searchTerm.toLowerCase();
+    return university.libelle_univ.toLowerCase().includes(searchString);
+  });
 
   if (loading) {
     return (
@@ -103,7 +109,7 @@ export function FacultyManagement() {
   return (
     <div className="space-y-6">
       <header className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Gestion des facultés</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Gestion des universités</h1>
       </header>
 
       {error && (
@@ -112,15 +118,15 @@ export function FacultyManagement() {
         </div>
       )}
 
-      {/* Add Faculty Form */}
+      {/* Add University Form */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          <form onSubmit={handleAddFaculty} className="flex gap-4">
+          <form onSubmit={handleAddUniversity} className="flex gap-4">
             <input
               type="text"
-              value={newFaculty}
-              onChange={(e) => setNewFaculty(e.target.value)}
-              placeholder="Nom de la faculté"
+              value={newUniversity}
+              onChange={(e) => setNewUniversity(e.target.value)}
+              placeholder="Nom de l'université"
               className="flex-1 p-2 border shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
             />
             <button
@@ -134,7 +140,23 @@ export function FacultyManagement() {
         </div>
       </div>
 
-      {/* Faculties List */}
+      {/* Search */}
+      <div className="bg-white shadow rounded-lg px-4 py-5 sm:p-6">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            placeholder="Rechercher une université..."
+          />
+        </div>
+      </div>
+
+      {/* Universities List */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <div className="flex flex-col">
@@ -162,21 +184,21 @@ export function FacultyManagement() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {faculties.map((faculty) => (
-                        <tr key={faculty.id}>
+                      {filteredUniversities.map((university) => (
+                        <tr key={university.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {editingFaculty?.id === faculty.id ? (
-                              <form onSubmit={handleUpdateFaculty} className="flex gap-2">
+                            {editingUniversity?.id === university.id ? (
+                              <form onSubmit={handleUpdateUniversity} className="flex gap-2">
                                 <input
                                   type="text"
-                                  value={editingFaculty.libelle_fac}
+                                  value={editingUniversity.libelle_univ}
                                   onChange={(e) =>
-                                    setEditingFaculty({
-                                      ...editingFaculty,
-                                      libelle_fac: e.target.value,
+                                    setEditingUniversity({
+                                      ...editingUniversity,
+                                      libelle_univ: e.target.value,
                                     })
                                   }
-                                  className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                  className="shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                                 />
                                 <button
                                   type="submit"
@@ -187,24 +209,24 @@ export function FacultyManagement() {
                               </form>
                             ) : (
                               <div className="text-sm text-gray-900">
-                                {faculty.libelle_fac}
+                                {university.libelle_univ}
                               </div>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-500">
-                              {new Date(faculty.created_at).toLocaleDateString()}
+                              {new Date(university.created_at).toLocaleDateString()}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button
-                              onClick={() => setEditingFaculty(faculty)}
+                              onClick={() => setEditingUniversity(university)}
                               className="text-indigo-600 hover:text-indigo-900 mr-4"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteFaculty(faculty.id)}
+                              onClick={() => handleDeleteUniversity(university.id)}
                               className="text-red-600 hover:text-red-900"
                             >
                               <Trash2 className="h-4 w-4" />

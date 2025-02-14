@@ -9,8 +9,8 @@ import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { DiplomaManagement } from './pages/DiplomaManagement';
 import { DiplomaVerification } from './pages/DiplomaVerification';
-//import { UniversityManagement } from './pages/UniversityManagement';
-//import { UserManagement } from './pages/UserManagement';
+import { UniversityManagement } from './pages/UniversityManagement';
+import { UserManagement } from './pages/UserManagement';
 import { FacultyManagement } from './pages/FacultyManagement';
 import { DepartmentManagement } from './pages/DepartmentManagement';
 import { PromotionManagement } from './pages/PromotionManagement';
@@ -93,10 +93,8 @@ function App() {
             {/* Admin only routes */}
             {profile?.role === 'admin' && (
               <>
-                { //<Route path="/universities" element={<UniversityManagement />} />
-                
-                  //<Route path="/users" element={<UserManagement />} />
-                }
+                <Route path="/universities" element={<UniversityManagement />} />
+                <Route path="/users" element={<UserManagement />} />
               </>
             )}
             
