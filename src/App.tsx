@@ -112,6 +112,7 @@ function App() {
             )}
           </Route>}
         </Route>
+        <Route path='/*' element={<Navigate to='/' />}></Route>
       </Routes>
     </BrowserRouter>
   );
