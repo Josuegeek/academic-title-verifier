@@ -26,7 +26,8 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
     fichier_url: '',
     qr_code: uuidv4(),
     date_delivrance: new Date().toISOString(),
-    lieu: 'Kinshasa'
+    lieu: 'Kinshasa',
+    est_authentique:false
   });
   const [selectedFaculty, setSelectedFaculty] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -213,7 +214,8 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
       fichier_url: '',
       qr_code: uuidv4(),
       date_delivrance: new Date().toISOString(),
-      lieu: 'Kinshasa'
+      lieu: 'Kinshasa',
+      est_authentique:false
     });
     setSelectedFaculty('');
     setSelectedDepartment('');

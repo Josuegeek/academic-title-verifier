@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Profile } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfile {
   id: string;
@@ -9,12 +11,24 @@ interface UserProfile {
   created_at: string;
 }
 
-export function UserManagement() {
+interface UserManagementProps {
+  profile: Profile|null;
+}
+
+export function UserManagement({profile}: UserManagementProps) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (profile && profile.role !== 'admin') {
+      navigate(-1);
+    }
+  }, [profile, navigate]);
 
   useEffect(() => {
     fetchUsers();

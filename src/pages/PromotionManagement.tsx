@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Profile } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 interface Promotion {
   id: string;
@@ -24,7 +27,12 @@ interface Department {
   };
 }
 
-export function PromotionManagement() {
+interface PromotionManagementProps {
+  profile: Profile | null;
+}
+
+export function PromotionManagement({ profile }: PromotionManagementProps) {
+  const navigate = useNavigate();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +43,13 @@ export function PromotionManagement() {
   });
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile?.role !== 'university_staff') {
+      toast.error('Vous devez être membre de l\'université pour acceder à cette page.');
+      navigate(-1);
+    }
+  }, [profile, navigate]);
 
   useEffect(() => {
     fetchPromotions();
@@ -70,7 +85,7 @@ export function PromotionManagement() {
     try {
       const { data, error } = await supabase
         .from('departement')
-        .select(`
+        .select<string, Department>(`
           id,
           libelle_dept,
           faculte (

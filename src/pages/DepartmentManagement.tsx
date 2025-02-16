@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Profile } from '../types';
+import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 interface Department {
   id: string;
@@ -17,7 +20,12 @@ interface Faculty {
   libelle_fac: string;
 }
 
-export function DepartmentManagement() {
+interface DepartementManagementProps {
+  profile: Profile|null;
+}
+
+export function DepartmentManagement({ profile }: DepartementManagementProps) {
+  const navigate = useNavigate();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +35,13 @@ export function DepartmentManagement() {
   });
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile?.role !== 'university_staff') {
+      toast.error('Vous devez être membre de l\'université pour acceder à cette page.');
+      navigate(-1);
+    }
+  }, [profile, navigate]);
 
   useEffect(() => {
     fetchDepartments();

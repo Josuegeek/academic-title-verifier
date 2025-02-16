@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -9,7 +9,6 @@ import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { DiplomaManagement } from './pages/DiplomaManagement';
 import { DiplomaVerification } from './pages/DiplomaVerification';
-import { UniversityManagement } from './pages/UniversityManagement';
 import { UserManagement } from './pages/UserManagement';
 import { FacultyManagement } from './pages/FacultyManagement';
 import { DepartmentManagement } from './pages/DepartmentManagement';
@@ -18,11 +17,11 @@ import { StudentManagement } from './pages/StudentManagement';
 
 // Components
 import { Layout } from './components/Layout';
-import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Types
 import { Profile } from './types';
 import { ToastContainer } from 'react-toastify';
+import { AuthenticateDiploma } from './pages/AuthenticateDiploma';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -85,34 +84,19 @@ function App() {
         {/* Public routes */}
         <Route path="/" element={<LandingPage user={user} />} />
         <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/dashboard" replace />} />
-
-        {/* Protected routes */}
-        <Route element={<ProtectedRoute user={user} profile={profile} />}>
-          {profile && <Route element={<Layout profile={profile} />}>
-            <Route path="/dashboard" element={<Dashboard profile={profile} />} />
-            <Route path="/verify" element={<DiplomaVerification />} />
-
-            {/* Admin only routes */}
-            {profile?.role === 'admin' && (
-              <>
-                <Route path="/universities" element={<UniversityManagement />} />
-                <Route path="/users" element={<UserManagement />} />
-              </>
-            )}
-
-            {/* University staff routes */}
-            {(profile?.role === 'admin' || profile?.role === 'university_staff') && (
-              <>
-                <Route path="/diplomas" element={<DiplomaManagement profile={profile} />} />
-                <Route path="/faculties" element={<FacultyManagement />} />
-                <Route path="/departments" element={<DepartmentManagement />} />
-                <Route path="/promotions" element={<PromotionManagement />} />
-                <Route path="/students" element={<StudentManagement />} />
-              </>
-            )}
-          </Route>}
+        
+        {/* Routes with Layout */}
+        <Route element={<Layout profile={profile} />}>
+          <Route path="/dashboard" element={<Dashboard profile={profile} />} />
+          <Route path="/verify" element={<DiplomaVerification profile={profile} />} />
+          <Route path="/users" element={<UserManagement profile={profile}/>} />
+          <Route path="/diplomas" element={<DiplomaManagement profile={profile} />} />
+          <Route path="/faculties" element={<FacultyManagement profile={profile}/>} />
+          <Route path="/departments" element={<DepartmentManagement profile={profile}/>} />
+          <Route path="/promotions" element={<PromotionManagement profile={profile}/>} />
+          <Route path="/students" element={<StudentManagement profile={profile}/>} />
+          <Route path="/authenticate-diploma" element={<AuthenticateDiploma profile={profile}/>} />
         </Route>
-
       </Routes>
     </BrowserRouter>
   );

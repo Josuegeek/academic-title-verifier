@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import {
   GraduationCap,
@@ -18,10 +18,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
-import { useEffect, useRef } from 'react';
 
 interface NavbarProps {
-  profile: Profile;
+  profile: Profile | null;
 }
 
 export function Navbar({ profile }: NavbarProps) {
@@ -34,25 +33,25 @@ export function Navbar({ profile }: NavbarProps) {
     navigate('/');
   };
 
-const dropdownRef = useRef<HTMLDivElement>(null);
-const burgerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const burgerRef = useRef<HTMLButtonElement>(null);
 
-useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-        if (
-            dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
-            burgerRef.current && !burgerRef.current.contains(event.target as Node)
-        ) {
-            setDropdownOpen(false);
-            setBurgerOpen(false);
-        }
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+        burgerRef.current && !burgerRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false);
+        setBurgerOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-}, []);
+  }, []);
 
   return (
     <div className="bg-white shadow-sm md:h-full relative">
@@ -63,7 +62,7 @@ useEffect(() => {
             {/* Burger menu button (show on small screens) */}
             <div className="md:hidden">
               <button
-              ref={burgerRef}
+                ref={burgerRef}
                 onClick={() => setBurgerOpen(!burgerOpen)}
                 className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
                 aria-expanded="false"
@@ -90,7 +89,7 @@ useEffect(() => {
                 aria-haspopup="true"
               >
                 <User className="h-6 w-6 text-gray-700" />
-                <span className="text-sm font-medium text-gray-700 max-[1200px]:hidden ">{profile.nom} {profile.postnom} ({profile.role})</span>
+                <span className="text-sm font-medium text-gray-700 max-[1200px]:hidden ">{profile?.nom} {profile?.postnom} ({profile?.role})</span>
                 <ChevronDown className={`h-4 w-4 text-gray-500 transition transform ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -146,21 +145,8 @@ useEffect(() => {
                 Tableau de bord
               </NavLink>
 
-              {(profile.role === 'admin') && (
+              {(profile?.role === 'admin') && (
                 <>
-                  <NavLink
-                    to="/universities"
-                    className={({ isActive }) =>
-                      `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                        isActive
-                          ? 'bg-indigo-100 text-indigo-700'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`
-                    }
-                  >
-                    <Building2 className="mr-3 h-6 w-6" aria-hidden="true" />
-                    Universités
-                  </NavLink>
                   <NavLink
                     to="/users"
                     className={({ isActive }) =>
@@ -177,7 +163,7 @@ useEffect(() => {
                 </>
               )}
 
-              {(profile.role === 'admin' || profile.role === 'university_staff') && (
+              {(profile?.role === 'university_staff') && (
                 <>
                   <NavLink
                     to="/diplomas"
@@ -232,6 +218,22 @@ useEffect(() => {
                     Étudiants
                   </NavLink>
                 </>
+              )}
+
+              {(profile?.role === 'esu_staff') && (
+                <NavLink
+                  to="/authenticate-diploma"
+                  className={({ isActive }) =>
+                    `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                      isActive
+                        ? 'bg-indigo-100 text-indigo-700'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`
+                  }
+                >
+                  <GraduationCap className="mr-3 h-6 w-6" aria-hidden="true" />
+                  Authentifier les diplômes
+                </NavLink>
               )}
 
               <NavLink

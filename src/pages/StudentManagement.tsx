@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Profile } from '../types';
+import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 interface Student {
   id: string;
@@ -34,7 +37,12 @@ interface Promotion {
   };
 }
 
-export function StudentManagement() {
+interface StudentManagementProps {
+  profile: Profile | null;
+}
+
+export function StudentManagement({ profile }: StudentManagementProps) {
+  const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +56,13 @@ export function StudentManagement() {
   });
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile?.role !== 'university_staff') {
+      toast.error('Vous devez être membre de l\'université pour acceder à cette page.');
+      navigate(-1);
+    }
+  }, [profile, navigate]);
 
   useEffect(() => {
     fetchStudents();

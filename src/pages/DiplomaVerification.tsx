@@ -1,56 +1,70 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Upload, CheckCircle, XCircle, QrCode, X } from 'lucide-react';
+import { Search, Upload, QrCode } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { PDFDocument } from 'pdf-lib';
 import jsQR from 'jsqr';
+import { useNavigate } from 'react-router-dom';
+import { Profile } from '../types';
+import { DiplomaInfo } from '../components/DiplomaInfo';
 
-interface VerificationResult {
-  isAuthentic: boolean;
-  diploma?: {
-    libelle_titre: string;
-    date_delivrance: string;
-    lieu: string;
-    domaine: string;
-    annee_academique: string;
-    fichier_url: string;
-    etudiant: {
-      nom: string;
-      postnom: string;
-      prenom: string;
-      date_naissance: string;
-      promotion: {
-        libelle_promotion: string;
-        departement: {
-          libelle_dept: string;
-          faculte: {
-            libelle_fac: string;
-          };
+interface DiplomaData {
+  id: string;
+  libelle_titre: string;
+  date_delivrance: string;
+  lieu: string;
+  domaine: string;
+  annee_academique: string;
+  fichier_url: string;
+  est_authentique: boolean;
+  etudiant: {
+    nom: string;
+    postnom: string;
+    prenom: string;
+    date_naissance: string;
+    promotion: {
+      libelle_promotion: string;
+      departement: {
+        libelle_dept: string;
+        faculte: {
+          libelle_fac: string;
         };
       };
     };
   };
 }
 
-export function DiplomaVerification() {
+interface DiplomaVerificationProps {
+  profile: Profile | null;
+}
+
+export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
+  const navigate = useNavigate();
   const [qrCode, setQrCode] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<VerificationResult | null>(null);
+  const [selectedDiploma, setSelectedDiploma] = useState<DiplomaData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!profile) {
+      toast.error('Vous devez être connecté pour accéder à cette page.');
+      navigate(-1);
+    }
+  }, [profile, navigate]);
 
   const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setResult(null);
+    setSelectedDiploma(null);
 
     try {
       let query = supabase
         .from('titre_academique')
-        .select(`
+        .select<string, DiplomaData>(`
+          id,
           libelle_titre,
           date_delivrance,
           lieu,
@@ -98,18 +112,15 @@ export function DiplomaVerification() {
       if (error) throw error;
 
       if (!data) {
-        setResult({ isAuthentic: false });
+        toast.error('Les informations rentrées ne correspondent pas à un diplôme enregistré.');
+        setError('Les informations rentrées ne correspondent pas à un diplôme enregistré.');
       } else {
-        setResult({
-          isAuthentic: data.est_authentique,
-          diploma: data,
-        });
+        setSelectedDiploma(data);
         toast.success("Diplôme vérifié avec succès.");
         setIsModalOpen(true);
       }
     } catch (error) {
       console.log(error);
-
       setError(error instanceof Error ? error.message : 'Une erreur est survenue');
       toast.error('Les informations rentrées ne correspondent pas à un diplôme enregistré.');
     } finally {
@@ -125,57 +136,51 @@ export function DiplomaVerification() {
   };
 
   const extractQrCodeFromPdf = async (file: File): Promise<string | null> => {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      const page = pdfDoc.getPage(0);
-      const { width, height } = page.getSize();
-  
-      // Create a canvas element
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-  
-      if (!ctx) {
-        console.error('Could not get canvas context');
-        return null;
-      }
-  
-      // Render the PDF page to the canvas
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-      img.src = url;
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const page = pdfDoc.getPage(0);
+    const { width, height } = page.getSize();
+    const qrCodeRegion = {
+      x: width - 150,
+      y: height - 150,
+      width: 150,
+      height: 150,
+    };
 
-      console.log(url)
-  
-      new Promise<void>((resolve) => {
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve();
-        };
-      });
-  
-      // Extract the QR code
-      const imageData = ctx.getImageData(0, 0, width, height);
-      const code = jsQR(imageData.data, width, height);
-  
-      if (code) {
-        return code.data;
-      } else {
-        console.log('No QR code found');
-        return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+
+    if (context) {
+
+      const imageData = context.getImageData(qrCodeRegion.x, qrCodeRegion.y, qrCodeRegion.width, qrCodeRegion.height);
+      const qrCode = jsQR(imageData.data, qrCodeRegion.width, qrCodeRegion.height);
+
+      const capturedImage = context.createImageData(qrCodeRegion.width, qrCodeRegion.height);
+      capturedImage.data.set(imageData.data);
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = qrCodeRegion.width;
+      tempCanvas.height = qrCodeRegion.height;
+      const tempContext = tempCanvas.getContext('2d');
+      if (tempContext) {
+        tempContext.putImageData(capturedImage, 0, 0);
+        const dataUrl = tempCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'captured_qr_code.png';
+        link.click();
       }
-    } catch (error) {
-      console.error('Error extracting QR code from PDF:', error);
-      return null;
+
+      return qrCode ? qrCode.data : null;
     }
+
+    return null;
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setSelectedDiploma(null);
   };
 
   return (
@@ -264,89 +269,8 @@ export function DiplomaVerification() {
           </div>
         )}
 
-        {result && (
-          <div className="p-6">
-            <div
-              className={`rounded-md ${
-                result.isAuthentic ? 'bg-green-50' : 'bg-red-50'
-              } p-4`}
-            >
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  {result.isAuthentic ? (
-                    <CheckCircle className="h-5 w-5 text-green-400" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-red-400" />
-                  )}
-                </div>
-                <div className="ml-3">
-                  <h3
-                    className={`text-sm font-medium ${
-                      result.isAuthentic ? 'text-green-800' : 'text-red-800'
-                    }`}
-                  >
-                    {result.isAuthentic
-                      ? 'Diplôme authentique'
-                      : 'Diplôme non authentique'}
-                  </h3>
-                </div>
-              </div>
-            </div>
-
-            {result.diploma && (
-              <div className="mt-6">
-                <h4 className="text-lg font-medium text-gray-900">
-                  Détails du diplôme
-                </h4>
-                <dl className="mt-4 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Titre</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {result.diploma.libelle_titre}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">
-                      Date de délivrance
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {new Date(result.diploma.date_delivrance).toLocaleDateString()}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Lieu</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {result.diploma.lieu}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Domaine</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {result.diploma.domaine}
-                    </dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="text-sm font-medium text-gray-500">
-                      Informations de l'étudiant
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      <p>
-                        {result.diploma.etudiant.nom}{' '}
-                        {result.diploma.etudiant.postnom}{' '}
-                        {result.diploma.etudiant.prenom}
-                      </p>
-                      <p className="mt-1">
-                        Né(e) le{' '}
-                        {new Date(
-                          result.diploma.etudiant.date_naissance
-                        ).toLocaleDateString()}
-                      </p>
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            )}
-          </div>
+        {isModalOpen && selectedDiploma && (
+          <DiplomaInfo result={{ isAuthentic: selectedDiploma.est_authentique, diploma: selectedDiploma }} closeModal={closeModal} />
         )}
       </div>
     </div>

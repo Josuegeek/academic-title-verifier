@@ -17,7 +17,8 @@ export async function fetchDiplomasJointStudent() {
                 nom,
                 postnom,
                 prenom
-            )
+            ),
+            est_authentique
             `
         ).order('created_at', { ascending: false });
 }
@@ -37,7 +38,8 @@ export async function fetchDiplomaByIdJointStudent(id: string) {
                 nom,
                 postnom,
                 prenom
-            )
+            ),
+            est_authentique
         `)
         .eq("id", id)
         .single();
@@ -54,7 +56,8 @@ export async function addDiploma(diploma: NewDiploma) {
                 qr_code: diploma.qr_code,
                 date_delivrance: diploma.date_delivrance,
                 lieu: diploma.lieu,
-                etudiant_id: diploma.etudiant_id
+                etudiant_id: diploma.etudiant_id,
+                est_authentique: diploma.est_authentique
             }
 
         );

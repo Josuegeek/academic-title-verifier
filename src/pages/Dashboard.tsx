@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
   Users,
   FileText,
   BookOpen,
   Layers,
-  Building2,
   Search,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -20,10 +19,11 @@ interface Stats {
 }
 
 interface DashboardProps {
-  profile: Profile;
+  profile: Profile|null;
 }
 
 export function Dashboard({ profile }: DashboardProps) {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({
     students: 0,
     diplomas: 0,
@@ -31,6 +31,12 @@ export function Dashboard({ profile }: DashboardProps) {
     departments: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!profile) {
+      navigate('/auth');
+    }
+  }, [profile, navigate]);
 
   useEffect(() => {
     fetchStats();
@@ -44,7 +50,7 @@ export function Dashboard({ profile }: DashboardProps) {
       let facultiesQuery = supabase.from('faculte').select('id', { count: 'exact' });
       let departmentsQuery = supabase.from('departement').select('id', { count: 'exact' });
 
-      if (profile.role === 'university_staff' && profile.universite_id) {
+      if (profile?.role === 'university_staff' && profile?.universite_id) {
         // Filter queries based on the university ID
         const universityId = profile.universite_id;
 

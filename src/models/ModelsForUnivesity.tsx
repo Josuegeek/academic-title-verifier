@@ -49,6 +49,7 @@ export interface NewDiploma {
     date_delivrance:string;
     lieu:string;
     etudiant_id: string;
+    est_authentique: boolean;
 }
 
 export interface DiplomaJointStudent {
@@ -64,6 +65,7 @@ export interface DiplomaJointStudent {
         postnom: string;
         prenom: string;
     } | null;
+    est_authentique: boolean;
 }
 
 export interface Diploma {

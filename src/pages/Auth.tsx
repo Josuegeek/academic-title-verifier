@@ -42,7 +42,7 @@ export function Auth() {
             prenom
           }]).eq("id", data.user?.id);
         if (errorProfile.error) throw errorProfile.error;
-        navigate('/profile'); // Redirect after signup
+        navigate('/dashboard'); // Redirect after signup
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,

@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Edit, Eye, Plus, Search, Trash2 } from 'lucide-react';
 import { DiplomaJointStudent, Faculty, NewDiploma, StudentJointPromotion } from '../models/ModelsForUnivesity';
-import { addDiploma, deleteDiploma, fetchDiplomasJointStudent, updateDiploma } from '../api/Diploma';
+import { addDiploma, deleteDiploma, updateDiploma } from '../api/Diploma';
 import { fetchStudentsJointPromotion } from '../api/Student';
 import { toast } from 'react-toastify';
 import { fetchFaculties } from '../api/Faculty';
 import { supabase } from '../lib/supabase';
 import AddDiplomaModal from '../components/AddDiplomaModal';
 import type { Profile } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 interface DiplomaManagementProps {
-  profile: Profile;
+  profile: Profile|null;
 }
 
 export function DiplomaManagement({ profile }: DiplomaManagementProps) {
+  const navigate = useNavigate();
   const [diplomas, setDiplomas] = useState<DiplomaJointStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,13 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
   const [currentDiploma, setCurrentDiploma] = useState<NewDiploma | null>(null);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (profile?.role !== 'university_staff') {
+      toast.error('Vous devez être membre de l\'université pour acceder à cette page.');
+      navigate(-1);
+    }
+  }, [profile, navigate]);
 
   useEffect(() => {
     fetchDiplomas();
@@ -50,11 +59,12 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
                 nom,
                 postnom,
                 prenom
-            )
+            ),
+            est_authentique
             `
         ).order('created_at', { ascending: false });
 
-      if (profile.role === 'university_staff' && profile.universite_id) {
+      if (profile?.role === 'university_staff' && profile?.universite_id) {
         query = query.eq('universite_id', profile.universite_id);
       }
 
@@ -108,6 +118,7 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
       qr_code: diploma.qr_code,
       date_delivrance: diploma.date_delivrance,
       lieu: diploma.lieu,
+      est_authentique: diploma.est_authentique
     });
     setIsEditingDiploma(true);
   };
