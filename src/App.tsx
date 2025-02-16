@@ -80,7 +80,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <ToastContainer/>
+      <ToastContainer />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<LandingPage user={user} />} />
@@ -91,7 +91,7 @@ function App() {
           {profile && <Route element={<Layout profile={profile} />}>
             <Route path="/dashboard" element={<Dashboard profile={profile} />} />
             <Route path="/verify" element={<DiplomaVerification />} />
-            
+
             {/* Admin only routes */}
             {profile?.role === 'admin' && (
               <>
@@ -99,7 +99,7 @@ function App() {
                 <Route path="/users" element={<UserManagement />} />
               </>
             )}
-            
+
             {/* University staff routes */}
             {(profile?.role === 'admin' || profile?.role === 'university_staff') && (
               <>
@@ -112,7 +112,7 @@ function App() {
             )}
           </Route>}
         </Route>
-        <Route path='/*' element={<Navigate to='/' />}></Route>
+
       </Routes>
     </BrowserRouter>
   );

@@ -143,15 +143,26 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
       firstPage.drawImage(qrImage, {
         x: pageWidth - 150,
         y: pageHeight - 150,
-        width: 130,
-        height: 130,
+        width: 100,
+        height: 100,
+      });
+
+      const logoUrl = '/imgs/logo_unikin.png';
+      const logoImageBytes = await fetch(logoUrl).then(r => r.arrayBuffer());
+      const logoImage = await pdfDoc.embedPng(logoImageBytes);
+
+      firstPage.drawImage(logoImage, {
+        x: 20,
+        y: pageHeight - 50,
+        width: 100,
+        height: 100,
       });
 
       firstPage.drawText('Université de Kinshasa', {
         x: 20,
         y: pageHeight - 50,
         font,
-        size: 16,
+        size: 20,
         color: rgb(0, 0, 0),
       });
 

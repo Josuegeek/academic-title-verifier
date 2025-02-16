@@ -125,46 +125,53 @@ export function DiplomaVerification() {
   };
 
   const extractQrCodeFromPdf = async (file: File): Promise<string | null> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
-    const page = pdfDoc.getPage(0);
-    const { width, height } = page.getSize();
-    const qrCodeRegion = {
-      x: width - 150,
-      y: height - 150,
-      width: 150,
-      height: 150,
-    };
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-
-    if (context) {
-
-      const imageData = context.getImageData(qrCodeRegion.x, qrCodeRegion.y, qrCodeRegion.width, qrCodeRegion.height);
-      const qrCode = jsQR(imageData.data, qrCodeRegion.width, qrCodeRegion.height);
-      
-      const capturedImage = context.createImageData(qrCodeRegion.width, qrCodeRegion.height);
-      capturedImage.data.set(imageData.data);
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = qrCodeRegion.width;
-      tempCanvas.height = qrCodeRegion.height;
-      const tempContext = tempCanvas.getContext('2d');
-      if (tempContext) {
-        tempContext.putImageData(capturedImage, 0, 0);
-        const dataUrl = tempCanvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'captured_qr_code.png';
-        link.click();
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(arrayBuffer);
+      const page = pdfDoc.getPage(0);
+      const { width, height } = page.getSize();
+  
+      // Create a canvas element
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+  
+      if (!ctx) {
+        console.error('Could not get canvas context');
+        return null;
       }
-      
-      return qrCode ? qrCode.data : null;
-    }
+  
+      // Render the PDF page to the canvas
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.src = url;
 
-    return null;
+      console.log(url)
+  
+      new Promise<void>((resolve) => {
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve();
+        };
+      });
+  
+      // Extract the QR code
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const code = jsQR(imageData.data, width, height);
+  
+      if (code) {
+        return code.data;
+      } else {
+        console.log('No QR code found');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error extracting QR code from PDF:', error);
+      return null;
+    }
   };
 
   const closeModal = () => {
@@ -260,8 +267,9 @@ export function DiplomaVerification() {
         {result && (
           <div className="p-6">
             <div
-              className={`rounded-md ${result.isAuthentic ? 'bg-green-50' : 'bg-red-50'
-                } p-4`}
+              className={`rounded-md ${
+                result.isAuthentic ? 'bg-green-50' : 'bg-red-50'
+              } p-4`}
             >
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -273,134 +281,71 @@ export function DiplomaVerification() {
                 </div>
                 <div className="ml-3">
                   <h3
-                    className={`text-sm font-medium ${result.isAuthentic ? 'text-green-800' : 'text-red-800'
-                      }`}
+                    className={`text-sm font-medium ${
+                      result.isAuthentic ? 'text-green-800' : 'text-red-800'
+                    }`}
                   >
                     {result.isAuthentic
                       ? 'Diplôme authentique'
-                      : 'Diplôme enregistré mais non authentifié'}
+                      : 'Diplôme non authentique'}
                   </h3>
                 </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {isModalOpen && result?.diploma && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 relative w-full max-w-3xl">
-              <button
-                onClick={closeModal}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 focus:outline-none"
-              >
-                <X className="h-6 w-6 bg-red-400 rounded-full p-1" />
-              </button>
-              <div
-                className={`rounded-md ${result.isAuthentic ? 'bg-green-50' : 'bg-red-50'
-                  } p-4`}
-              >
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    {result.isAuthentic ? (
-                      <CheckCircle className="h-5 w-5 text-green-400" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-400" />
-                    )}
+            {result.diploma && (
+              <div className="mt-6">
+                <h4 className="text-lg font-medium text-gray-900">
+                  Détails du diplôme
+                </h4>
+                <dl className="mt-4 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Titre</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {result.diploma.libelle_titre}
+                    </dd>
                   </div>
-                  <div className="ml-3">
-                    <h3
-                      className={`text-sm font-medium ${result.isAuthentic ? 'text-green-800' : 'text-red-800'
-                        }`}
-                    >
-                      {result.isAuthentic
-                        ? 'Diplôme authentique'
-                        : 'Diplôme enregistré mais non authentifié'}
-                    </h3>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Date de délivrance
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {new Date(result.diploma.date_delivrance).toLocaleDateString()}
+                    </dd>
                   </div>
-                </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Lieu</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {result.diploma.lieu}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Domaine</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {result.diploma.domaine}
+                    </dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-sm font-medium text-gray-500">
+                      Informations de l'étudiant
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      <p>
+                        {result.diploma.etudiant.nom}{' '}
+                        {result.diploma.etudiant.postnom}{' '}
+                        {result.diploma.etudiant.prenom}
+                      </p>
+                      <p className="mt-1">
+                        Né(e) le{' '}
+                        {new Date(
+                          result.diploma.etudiant.date_naissance
+                        ).toLocaleDateString()}
+                      </p>
+                    </dd>
+                  </div>
+                </dl>
               </div>
-              <h4 className="text-lg font-medium text-gray-900">
-                Détails du diplôme
-              </h4>
-              <dl className="mt-4 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Titre</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {result.diploma.libelle_titre}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">
-                    Date de délivrance
-                  </dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {new Date(result.diploma.date_delivrance).toLocaleDateString()}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Lieu</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {result.diploma.lieu}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Domaine</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {result.diploma.domaine}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Année académique</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {result.diploma.annee_academique}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Promotion</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {result.diploma.etudiant.promotion.libelle_promotion}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Département</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {result.diploma.etudiant.promotion.departement.libelle_dept}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Faculté</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {result.diploma.etudiant.promotion.departement.faculte.libelle_fac}
-                  </dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-sm font-medium text-gray-500">
-                    Informations de l'étudiant
-                  </dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    <p>
-                      {result.diploma.etudiant.nom}{' '}
-                      {result.diploma.etudiant.postnom}{' '}
-                      {result.diploma.etudiant.prenom}
-                    </p>
-                    <p className="mt-1">
-                      Né(e) le{' '}
-                      {new Date(result.diploma.etudiant.date_naissance).toLocaleDateString()}
-                    </p>
-                  </dd>
-                </div>
-              </dl>
-              <div className="mt-6 flex justify-end">
-                <a
-                  href={result.diploma.fichier_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Voir le PDF
-                </a>
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 export type Profile = {
   id: string;
-  role: 'admin' | 'university_staff' | 'verifier';
+  role: 'admin' | 'university_staff' | 'verifier' | 'esu_staff';
   universite_id?: string;
   nom?:string;
   postnom?:string;
