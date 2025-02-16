@@ -7,6 +7,7 @@ import { CustomInput } from './Input';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts} from 'pdf-lib';
 import { toast } from 'react-toastify';
+import { fetchSigners, SignerM } from '../api/Signer';
 
 interface AddDiplomaModalProps {
   isSubmitting: boolean;
@@ -19,6 +20,13 @@ interface AddDiplomaModalProps {
   initialDiploma: NewDiploma | null;
 }
 
+const documentTypes = [
+  'Diplôme academique',
+  'Attestation de réussite',
+  'Relevé des côtes',
+  'Attestation de fréquentation',
+];
+
 const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen, onClose, onSubmit, faculties, students, error, initialDiploma }) => {
   const [newDiploma, setNewDiploma] = useState<NewDiploma>({
     libelle_titre: '',
@@ -27,7 +35,9 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
     qr_code: uuidv4(),
     date_delivrance: new Date().toISOString(),
     lieu: 'Kinshasa',
-    est_authentique:false
+    annee_academique: '',
+    signe_par: '',
+    est_authentique: false,
   });
   const [selectedFaculty, setSelectedFaculty] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -40,6 +50,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
   const [fileError, setFileError] = useState(false);
   const fileInputRef = useRef<HTMLDivElement>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [signers, setSigners] = useState<SignerM[]>([]);
 
   const applyInitialDiploma = () => {
     if (initialDiploma) {
@@ -116,12 +127,35 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
     });
   }, [newDiploma.qr_code]);
 
+  useEffect(() => {
+    const fetchAllSigners = async () => {
+      try {
+        const { data, error } = await fetchSigners();
+        if (error) {
+          console.error("Error fetching signers:", error);
+          toast.error('Erreur lors du chargement des signataires');
+          return;
+        }
+        setSigners(data || []);
+      } catch (error) {
+        console.error("Error fetching signers:", error);
+        toast.error('Erreur lors du chargement des signataires');
+      }
+    };
+
+    fetchAllSigners();
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    console.log(name, value);
+    
     setNewDiploma((prevDiploma) => ({
       ...prevDiploma,
       [name]: value,
     }));
+    console.log(newDiploma);
+    
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,44 +174,82 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
       const pageHeight = firstPage.getHeight();
 
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-      firstPage.drawImage(qrImage, {
-        x: pageWidth - 150,
-        y: pageHeight - 150,
-        width: 100,
-        height: 100,
-      });
-
+      //Header
       const logoUrl = '/imgs/logo_unikin.png';
       const logoImageBytes = await fetch(logoUrl).then(r => r.arrayBuffer());
       const logoImage = await pdfDoc.embedPng(logoImageBytes);
 
       firstPage.drawImage(logoImage, {
         x: 20,
-        y: pageHeight - 50,
+        y: pageHeight - 120,
         width: 100,
         height: 100,
       });
 
+      const textWidth1 = boldFont.widthOfTextAtSize('Université de Kinshasa', 20);
+      const textWidth2 = font.widthOfTextAtSize('Système de vérification sécurisé des diplômes', 14);
+
       firstPage.drawText('Université de Kinshasa', {
-        x: 20,
+        x: (pageWidth - textWidth1) / 2,
         y: pageHeight - 50,
-        font,
+        font: boldFont,
         size: 20,
         color: rgb(0, 0, 0),
       });
 
       firstPage.drawText('Système de vérification sécurisé des diplômes', {
-        x: 20,
+        x: (pageWidth - textWidth2) / 2,
         y: pageHeight - 70,
         font,
         size: 14,
         color: rgb(0, 0, 0),
       });
 
+      //QRCode
+      firstPage.drawImage(qrImage, {
+        x: (pageWidth - 150) / 2,
+        y: (pageHeight - 150) / 2,
+        width: 150,
+        height: 150,
+      });
+
+      // QR Code text
+      const qrCodeText = newDiploma.qr_code;
+      const textWidth = font.widthOfTextAtSize(qrCodeText, 12);
+
+      firstPage.drawText(qrCodeText, {
+        x: (pageWidth - textWidth) / 2,
+        y: (pageHeight - 150) / 2 - 20,
+        font,
+        size: 14,
+        color: rgb(0, 0, 0),
+      });
+
+      //Footer
+      const signer = signers.find(signer => signer.id === newDiploma.signe_par);
+      const signerName = signer ? `${signer.nom} ${signer.postnom || ''} ${signer.prenom}` : '';
+
+      firstPage.drawText(`Délivré à Kinshasa par ${signerName}`, {
+        x: pageWidth - 300,
+        y: 50,
+        font: boldFont,
+        size: 12,
+        color: rgb(0, 0, 0),
+      });
+
+      firstPage.drawText(`${signer?.role || ''}`, {
+        x: pageWidth - 300,
+        y: 30,
+        font,
+        size: 12,
+        color: rgb(0, 0, 0),
+      });
+
       firstPage.drawText('@Copyright Danisi Kibeye', {
         x: 20,
-        y: pageHeight - 150,
+        y: 20,
         font,
         size: 14,
         color: rgb(0, 0, 0),
@@ -215,7 +287,9 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
       qr_code: uuidv4(),
       date_delivrance: new Date().toISOString(),
       lieu: 'Kinshasa',
-      est_authentique:false
+      annee_academique: '',
+      signe_par: '',
+      est_authentique: false,
     });
     setSelectedFaculty('');
     setSelectedDepartment('');
@@ -251,6 +325,18 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
     return studentName.includes(searchTermLower);
   });
 
+  const generateAcademicYears = () => {
+    const startYear = 2023;
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = startYear; i <= currentYear; i++) {
+      years.push(`${i}-${i + 1}`);
+    }
+    return years;
+  };
+
+  const academicYears = generateAcademicYears();
+
   return (
     isOpen && (
       <div className="fixed z-10 inset-0" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -270,8 +356,43 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
               <form onSubmit={handleFormSubmit} className="flex flex-col space-y-4 relative">
                 <div className='overflow-y-scroll max-h-[50vh] px-1'>
                   <div>
-                    <CustomInput idName='libelle_titre' value={newDiploma.libelle_titre} label='Titre du diplôme' onChange={handleInputChange} className='' type='text' options={[]}
-                    />
+                    <label htmlFor="libelle_titre" className="block text-sm font-medium text-gray-700">
+                      Type de document
+                    </label>
+                    <select
+                      id="libelle_titre"
+                      name="libelle_titre"
+                      value={newDiploma.libelle_titre}
+                      onChange={handleInputChange}
+                      className="mt-1 border focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3"
+                    >
+                      <option value="">Sélectionnez un type de document</option>
+                      {documentTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="annee_academique" className="block text-sm font-medium text-gray-700">
+                      Année académique
+                    </label>
+                    <select
+                      id="annee_academique"
+                      name="annee_academique"
+                      value={newDiploma.annee_academique}
+                      onChange={handleInputChange}
+                      className="mt-1 border focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3"
+                    >
+                      <option value="">Sélectionnez une année académique</option>
+                      {academicYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -306,6 +427,24 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                     />
                     <CustomInput idName='etudiant_id' value={newDiploma.etudiant_id} label='Étudiant' onChange={handleInputChange} className='' type='select' options={filteredStudents} isStudentSelect={true}
                     />
+                  </div>
+
+                  <div>
+                    <label htmlFor="signe_par" className="block text-sm font-medium text-gray-700">Signataire</label>
+                    <select
+                      id="signe_par"
+                      name="signe_par"
+                      value={newDiploma.signe_par}
+                      onChange={handleInputChange}
+                      className="mt-1 border focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3"
+                    >
+                      <option value="">Sélectionnez un signataire</option>
+                      {signers.map((signer) => (
+                        <option key={signer.id} value={signer.id}>
+                          {signer.nom} {signer.prenom} ({signer.role})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div ref={fileInputRef}>

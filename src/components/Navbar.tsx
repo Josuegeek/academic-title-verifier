@@ -15,6 +15,8 @@ import {
   ChevronDown,
   Menu,
   X,
+  Hand,
+  Grid2x2Icon,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
@@ -205,6 +207,19 @@ export function Navbar({ profile }: NavbarProps) {
                     Départements
                   </NavLink>
                   <NavLink
+                    to="/promotions"
+                    className={({ isActive }) =>
+                      `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                        isActive
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <Grid2x2Icon className="mr-3 h-6 w-6" aria-hidden="true" />
+                    Promotions
+                  </NavLink>
+                  <NavLink
                     to="/students"
                     className={({ isActive }) =>
                       `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
@@ -216,6 +231,19 @@ export function Navbar({ profile }: NavbarProps) {
                   >
                     <GraduationIcon className="mr-3 h-6 w-6" aria-hidden="true" />
                     Étudiants
+                  </NavLink>
+                  <NavLink
+                    to="/signers"
+                    className={({ isActive }) =>
+                      `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                        isActive
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <Hand className="mr-3 h-6 w-6" aria-hidden="true" />
+                    Signateurs
                   </NavLink>
                 </>
               )}

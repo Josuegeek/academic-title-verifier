@@ -19,7 +19,7 @@ interface Stats {
 }
 
 interface DashboardProps {
-  profile: Profile|null;
+  profile: Profile | null;
 }
 
 export function Dashboard({ profile }: DashboardProps) {
@@ -31,15 +31,20 @@ export function Dashboard({ profile }: DashboardProps) {
     departments: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
-    if (!profile) {
-      navigate('/auth');
+    if (profile === null && !profileLoading) {
+      navigate('/');
+    } else if (profile) {
+      setProfileLoading(false);
     }
-  }, [profile, navigate]);
+  }, [profile, profileLoading, navigate]);
 
   useEffect(() => {
-    fetchStats();
+    if (profile) {
+      fetchStats();
+    }
   }, [profile]);
 
   const fetchStats = async () => {

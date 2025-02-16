@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -43,11 +43,13 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
   });
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [departmentSearchTerm, setDepartmentSearchTerm] = useState('');
+  const [tableSearchTerm, setTableSearchTerm] = useState('');
 
   useEffect(() => {
     if (profile?.role !== 'university_staff') {
       toast.error('Vous devez être membre de l\'université pour acceder à cette page.');
-      navigate(-1);
+      navigate('/');
     }
   }, [profile, navigate]);
 
@@ -118,9 +120,11 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
       if (error) throw error;
       setNewPromotion({ libelle_promotion: '', option: '', departement_id: '' });
       fetchPromotions();
+      toast.success('Promotion ajoutée avec succès !');
     } catch (error) {
       console.error('Error adding promotion:', error);
       setError('Erreur lors de l\'ajout de la promotion');
+      toast.error('Erreur lors de l\'ajout de la promotion');
     }
   };
 
@@ -141,9 +145,11 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
       if (error) throw error;
       setEditingPromotion(null);
       fetchPromotions();
+      toast.success('Promotion mise à jour avec succès !');
     } catch (error) {
       console.error('Error updating promotion:', error);
       setError('Erreur lors de la mise à jour de la promotion');
+      toast.error('Erreur lors de la mise à jour de la promotion');
     }
   };
 
@@ -160,11 +166,27 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
 
       if (error) throw error;
       fetchPromotions();
+      toast.success('Promotion supprimée avec succès !');
     } catch (error) {
       console.error('Error deleting promotion:', error);
       setError('Erreur lors de la suppression de la promotion');
+      toast.error('Erreur lors de la suppression de la promotion');
     }
   };
+
+  const filteredDepartments = departments.filter(department =>
+    department.libelle_dept.toLowerCase().includes(departmentSearchTerm.toLowerCase())
+  );
+
+  const filteredPromotions = promotions.filter(promotion => {
+    const searchString = tableSearchTerm.toLowerCase();
+    return (
+      promotion.libelle_promotion.toLowerCase().includes(searchString) ||
+      (promotion.option && promotion.option.toLowerCase().includes(searchString)) ||
+      promotion.departement.libelle_dept.toLowerCase().includes(searchString) ||
+      promotion.departement.faculte.libelle_fac.toLowerCase().includes(searchString)
+    );
+  });
 
   if (loading) {
     return (
@@ -194,14 +216,26 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
               <label htmlFor="departement" className="block text-sm font-medium text-gray-700">
                 Département
               </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={departmentSearchTerm}
+                  onChange={(e) => setDepartmentSearchTerm(e.target.value)}
+                  placeholder="Rechercher un département..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
               <select
                 id="departement"
                 value={newPromotion.departement_id}
                 onChange={(e) => setNewPromotion({ ...newPromotion, departement_id: e.target.value })}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                className="border p-2 mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
                 <option value="">Sélectionnez un département</option>
-                {departments.map((department) => (
+                {filteredDepartments.map((department) => (
                   <option key={department.id} value={department.id}>
                     {department.libelle_dept} - {department.faculte.libelle_fac}
                   </option>
@@ -211,11 +245,12 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <input
+                  required
                   type="text"
                   value={newPromotion.libelle_promotion}
                   onChange={(e) => setNewPromotion({ ...newPromotion, libelle_promotion: e.target.value })}
                   placeholder="Nom de la promotion"
-                  className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  className="border p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
               <div>
@@ -224,7 +259,7 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
                   value={newPromotion.option}
                   onChange={(e) => setNewPromotion({ ...newPromotion, option: e.target.value })}
                   placeholder="Option (facultatif)"
-                  className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  className="border p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
             </div>
@@ -244,6 +279,20 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
       {/* Promotions List */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
+          <div className="mb-4">
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={tableSearchTerm}
+                onChange={(e) => setTableSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="Rechercher une promotion..."
+              />
+            </div>
+          </div>
           <div className="flex flex-col">
             <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
               <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
@@ -281,7 +330,7 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {promotions.map((promotion) => (
+                      {filteredPromotions.map((promotion) => (
                         <tr key={promotion.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {editingPromotion?.id === promotion.id ? (

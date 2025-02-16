@@ -200,7 +200,6 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             } else {
                 throw new Error('Fichier PDF non trouvé pour ce diplôme.');
             }
-
             if (!authenticatedFile) {
                 throw new Error('Fichier PDF non trouvé.');
             }

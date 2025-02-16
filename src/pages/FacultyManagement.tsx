@@ -19,6 +19,7 @@ export function FacultyManagement({ profile }: FacultyManagementProps) {
   const navigate = useNavigate();
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setSubmitting] = useState(false);
   const [newFaculty, setNewFaculty] = useState('');
   const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +54,13 @@ export function FacultyManagement({ profile }: FacultyManagementProps) {
 
   const handleAddFaculty = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFaculty.trim()) return;
+    if (!newFaculty.trim()){
+      toast.error('Le nom de la faculté ne peut pas être vide');
+      return;
+    }
 
     try {
+      setSubmitting(true);
       const { error } = await supabase
         .from('faculte')
         .insert([{ libelle_fac: newFaculty.trim() }]);
@@ -64,8 +69,13 @@ export function FacultyManagement({ profile }: FacultyManagementProps) {
       setNewFaculty('');
       fetchFaculties();
     } catch (error) {
+      setSubmitting(false);
       console.error('Error adding faculty:', error);
+      toast.error('Erreur lors de l\'ajout de la faculté');
       setError('Erreur lors de l\'ajout de la faculté');
+    }
+    finally{
+      setSubmitting(false);
     }
   };
 
@@ -134,6 +144,7 @@ export function FacultyManagement({ profile }: FacultyManagementProps) {
             <input
               type="text"
               value={newFaculty}
+              required
               onChange={(e) => setNewFaculty(e.target.value)}
               placeholder="Nom de la faculté"
               className="flex-1 p-2 border shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
@@ -141,9 +152,20 @@ export function FacultyManagement({ profile }: FacultyManagementProps) {
             <button
               type="submit"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
             >
-              <Plus className="h-5 w-5 mr-2" />
-              Ajouter
+              {isSubmitting ? (
+                      <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                    ) : (
+                      <>
+                        <Plus className="h-5 w-5 mr-2" />
+                        Ajouter
+                      </>
+                      
+                    )}
             </button>
           </form>
         </div>

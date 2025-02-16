@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
-import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 interface Department {
   id: string;
@@ -21,7 +21,7 @@ interface Faculty {
 }
 
 interface DepartementManagementProps {
-  profile: Profile|null;
+  profile: Profile | null;
 }
 
 export function DepartmentManagement({ profile }: DepartementManagementProps) {
@@ -35,11 +35,12 @@ export function DepartmentManagement({ profile }: DepartementManagementProps) {
   });
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tableSearchTerm, setTableSearchTerm] = useState('');
 
   useEffect(() => {
     if (profile?.role !== 'university_staff') {
       toast.error('Vous devez être membre de l\'université pour acceder à cette page.');
-      navigate(-1);
+      navigate('/');
     }
   }, [profile, navigate]);
 
@@ -65,6 +66,7 @@ export function DepartmentManagement({ profile }: DepartementManagementProps) {
     } catch (error) {
       console.error('Error fetching departments:', error);
       setError('Erreur lors du chargement des départements');
+      toast.error('Erreur lors du chargement des départements');
     } finally {
       setLoading(false);
     }
@@ -82,6 +84,7 @@ export function DepartmentManagement({ profile }: DepartementManagementProps) {
     } catch (error) {
       console.error('Error fetching faculties:', error);
       setError('Erreur lors du chargement des facultés');
+      toast.error('Erreur lors du chargement des facultés');
     }
   };
 
@@ -100,9 +103,11 @@ export function DepartmentManagement({ profile }: DepartementManagementProps) {
       if (error) throw error;
       setNewDepartment({ libelle_dept: '', faculte_id: '' });
       fetchDepartments();
+      toast.success('Département ajouté avec succès !');
     } catch (error) {
       console.error('Error adding department:', error);
       setError('Erreur lors de l\'ajout du département');
+      toast.error('Erreur lors de l\'ajout du département');
     }
   };
 
@@ -122,9 +127,11 @@ export function DepartmentManagement({ profile }: DepartementManagementProps) {
       if (error) throw error;
       setEditingDepartment(null);
       fetchDepartments();
+      toast.success('Département mis à jour avec succès !');
     } catch (error) {
       console.error('Error updating department:', error);
       setError('Erreur lors de la mise à jour du département');
+      toast.error('Erreur lors de la mise à jour du département');
     }
   };
 
@@ -141,11 +148,21 @@ export function DepartmentManagement({ profile }: DepartementManagementProps) {
 
       if (error) throw error;
       fetchDepartments();
+      toast.success('Département supprimé avec succès !');
     } catch (error) {
       console.error('Error deleting department:', error);
       setError('Erreur lors de la suppression du département');
+      toast.error('Erreur lors de la suppression du département');
     }
   };
+
+  const filteredDepartments = departments.filter(department => {
+    const searchString = tableSearchTerm.toLowerCase();
+    return (
+      department.libelle_dept.toLowerCase().includes(searchString) ||
+      department.faculte.libelle_fac.toLowerCase().includes(searchString)
+    );
+  });
 
   if (loading) {
     return (
@@ -212,6 +229,20 @@ export function DepartmentManagement({ profile }: DepartementManagementProps) {
       {/* Departments List */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
+          <div className="mb-4">
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={tableSearchTerm}
+                onChange={(e) => setTableSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="Rechercher un département..."
+              />
+            </div>
+          </div>
           <div className="flex flex-col">
             <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
               <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
@@ -243,7 +274,7 @@ export function DepartmentManagement({ profile }: DepartementManagementProps) {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {departments.map((department) => (
+                      {filteredDepartments.map((department) => (
                         <tr key={department.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {editingDepartment?.id === department.id ? (

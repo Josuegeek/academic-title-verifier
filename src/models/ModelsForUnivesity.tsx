@@ -50,6 +50,8 @@ export interface NewDiploma {
     lieu:string;
     etudiant_id: string;
     est_authentique: boolean;
+    annee_academique: string;
+    signe_par: string;
 }
 
 export interface DiplomaJointStudent {
@@ -66,6 +68,8 @@ export interface DiplomaJointStudent {
         prenom: string;
     } | null;
     est_authentique: boolean;
+    annee_academique: string;
+    signe_par: string;
 }
 
 export interface Diploma {

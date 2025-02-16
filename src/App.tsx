@@ -22,6 +22,7 @@ import { Layout } from './components/Layout';
 import { Profile } from './types';
 import { ToastContainer } from 'react-toastify';
 import { AuthenticateDiploma } from './pages/AuthenticateDiploma';
+import { SignerManagement } from './pages/SignerManagement';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -96,6 +97,7 @@ function App() {
           <Route path="/promotions" element={<PromotionManagement profile={profile}/>} />
           <Route path="/students" element={<StudentManagement profile={profile}/>} />
           <Route path="/authenticate-diploma" element={<AuthenticateDiploma profile={profile}/>} />
+          <Route path="/signers" element={<SignerManagement profile={profile}/>} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -118,7 +118,9 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
       qr_code: diploma.qr_code,
       date_delivrance: diploma.date_delivrance,
       lieu: diploma.lieu,
-      est_authentique: diploma.est_authentique
+      est_authentique: diploma.est_authentique,
+      annee_academique: diploma.annee_academique,
+      signe_par: diploma.signe_par
     });
     setIsEditingDiploma(true);
   };

@@ -49,7 +49,7 @@ export function Auth() {
           password,
         });
         if (error) throw error;
-        navigate('/dashboard'); // Redirect after login
+        navigate('/dashboard');
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Une erreur est survenue');
