@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import {
   GraduationCap,
   LayoutDashboard,
-  LogOut,
   Users,
-  Building2,
   BookOpen,
   Layers,
   GraduationCap as GraduationIcon,
@@ -83,7 +81,7 @@ export function Navbar({ profile }: NavbarProps) {
             </div>
 
             {/* User Dropdown (always on top right on small screens) */}
-            <div ref={dropdownRef} className="relative max-[1200px]:absolute max-md:relative max-md:bottom-0 max-[1200px]:bottom-7 z-20">
+            <div ref={dropdownRef} className="w-full relative max-[1200px]:absolute max-md:relative max-md:bottom-0 max-[1200px]:bottom-7 z-20">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center space-x-2 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500"

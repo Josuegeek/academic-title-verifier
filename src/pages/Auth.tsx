@@ -30,18 +30,20 @@ export function Auth() {
 
     try {
       if (isSignUp) {
-        const { error, data } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              nom,
+              postnom,
+              prenom,
+              email
+            }
+          }
         });
         if (error) throw error;
-        const errorProfile = await supabase.from('profiles')
-          .update([{
-            nom,
-            postnom,
-            prenom
-          }]).eq("id", data.user?.id);
-        if (errorProfile.error) throw errorProfile.error;
+        
         navigate('/dashboard'); // Redirect after signup
       } else {
         const { error } = await supabase.auth.signInWithPassword({

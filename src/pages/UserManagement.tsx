@@ -1,28 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { Edit2,Search, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Profile } from '../types';
+import type { Profile } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { AddUserModal } from '../components/AddUserModal';
 
 interface UserProfile {
   id: string;
   role: 'admin' | 'university_staff' | 'verifier';
+  nom: string;
+  postnom: string;
+  prenom: string;
+  email: string;
   universite_id: string | null;
   created_at: string;
 }
 
 interface UserManagementProps {
-  profile: Profile|null;
+  profile: Profile | null;
 }
 
-export function UserManagement({profile}: UserManagementProps) {
+export function UserManagement({ profile }: UserManagementProps) {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const navigate = useNavigate();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     if (profile && profile.role !== 'admin') {
@@ -36,13 +43,21 @@ export function UserManagement({profile}: UserManagementProps) {
 
   const fetchUsers = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setUsers(data || []);
+      console.log(data);
+      setError(null);
+      // Flatten the structure to include email directly in the profile
+      const usersWithEmail = data.map((profile: any) => ({
+        ...profile,
+        email: profile?.email || 'N/A', // Access email from auth.users
+      }));
+      setUsers(usersWithEmail as UserProfile[]);
     } catch (error) {
       console.error('Error fetching users:', error);
       setError('Erreur lors du chargement des utilisateurs');
@@ -56,6 +71,7 @@ export function UserManagement({profile}: UserManagementProps) {
     if (!editingUser) return;
 
     try {
+      setIsSubmitting(true);
       const { error } = await supabase
         .from('profiles')
         .update({ role: editingUser.role, universite_id: editingUser.universite_id })
@@ -64,34 +80,23 @@ export function UserManagement({profile}: UserManagementProps) {
       if (error) throw error;
       setEditingUser(null);
       fetchUsers();
+      toast.success('Utilisateur mis à jour avec succès !');
     } catch (error) {
       console.error('Error updating user:', error);
       setError('Erreur lors de la mise à jour de l\'utilisateur');
-    }
-  };
-
-  const handleDeleteUser = async (id: string) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      fetchUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      setError('Erreur lors de la suppression de l\'utilisateur');
+      toast.error('Erreur lors de la mise à jour de l\'utilisateur');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const filteredUsers = users.filter((user) => {
     const searchString = searchTerm.toLowerCase();
-    return user.id.toLowerCase().includes(searchString) || user.role.toLowerCase().includes(searchString);
+    return user.nom?.toLowerCase().includes(searchString) ||
+      user.postnom?.toLowerCase().includes(searchString) ||
+      user.prenom?.toLowerCase().includes(searchString) ||
+      user.email?.toLowerCase().includes(searchString) ||
+      user.role?.toLowerCase().includes(searchString);
   });
 
   if (loading) {
@@ -106,6 +111,15 @@ export function UserManagement({profile}: UserManagementProps) {
     <div className="space-y-6">
       <header className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Gestion des utilisateurs</h1>
+        <div className='flex gap-1'>
+          <button
+            onClick={() => fetchUsers()}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <Loader className="h-5 w-5" />
+            
+          </button>
+        </div>
       </header>
 
       {error && (
@@ -144,19 +158,19 @@ export function UserManagement({profile}: UserManagementProps) {
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
-                          ID
+                          Noms
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Email
                         </th>
                         <th
                           scope="col"
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                         >
                           Role
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Université ID
                         </th>
                         <th
                           scope="col"
@@ -173,7 +187,10 @@ export function UserManagement({profile}: UserManagementProps) {
                       {filteredUsers.map((user) => (
                         <tr key={user.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{user.id}</div>
+                            <div className="text-sm text-gray-900">{`${user.nom} ${user.postnom} ${user.prenom}`}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">{user.email}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {editingUser?.id === user.id ? (
@@ -185,7 +202,7 @@ export function UserManagement({profile}: UserManagementProps) {
                                     role: e.target.value as 'admin' | 'university_staff' | 'verifier',
                                   })
                                 }
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                className="p-2 border shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                               >
                                 <option value="admin">Admin</option>
                                 <option value="university_staff">University Staff</option>
@@ -193,23 +210,6 @@ export function UserManagement({profile}: UserManagementProps) {
                               </select>
                             ) : (
                               <div className="text-sm text-gray-900">{user.role}</div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {editingUser?.id === user.id ? (
-                              <input
-                                type="text"
-                                value={editingUser.universite_id || ''}
-                                onChange={(e) =>
-                                  setEditingUser({
-                                    ...editingUser,
-                                    universite_id: e.target.value,
-                                  })
-                                }
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                              />
-                            ) : (
-                              <div className="text-sm text-gray-500">{user.universite_id || '-'}</div>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -223,8 +223,9 @@ export function UserManagement({profile}: UserManagementProps) {
                                 <button
                                   onClick={handleUpdateUser}
                                   className="text-indigo-600 hover:text-indigo-900"
+                                  disabled={isSubmitting}
                                 >
-                                  <Edit2 className="h-4 w-4" />
+                                  {isSubmitting ? <div className="h-4 w-4 border-t-2 border-indigo-600 border-solid rounded-full animate-spin" /> : <div className='flex items-center gap-1 text-white bg-blue-600 p-1 border rounded-lg'><Edit2 className="w-4" />Modifier</div>}
                                 </button>
                                 <button
                                   onClick={() => setEditingUser(null)}
@@ -237,15 +238,9 @@ export function UserManagement({profile}: UserManagementProps) {
                               <div className="flex justify-end space-x-2">
                                 <button
                                   onClick={() => setEditingUser(user)}
-                                  className="text-indigo-600 hover:text-indigo-900"
+                                  className="p-1 border rounded-lg text-indigo-600 hover:text-indigo-900"
                                 >
                                   <Edit2 className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(user.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  <Trash2 className="h-4 w-4" />
                                 </button>
                               </div>
                             )}
@@ -260,6 +255,12 @@ export function UserManagement({profile}: UserManagementProps) {
           </div>
         </div>
       </div>
+
+      <AddUserModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onUsersChange={fetchUsers}
+      />
     </div>
   );
 }

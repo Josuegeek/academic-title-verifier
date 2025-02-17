@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, FileText, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
 import QRCode from 'qrcode';

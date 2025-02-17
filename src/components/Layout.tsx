@@ -1,10 +1,9 @@
-import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import type { Profile } from '../types';
 
 interface LayoutProps {
-  profile: Profile;
+  profile: Profile|null;
 }
 
 export function Layout({ profile }: LayoutProps) {
