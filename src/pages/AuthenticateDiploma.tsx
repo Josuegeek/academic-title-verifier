@@ -9,8 +9,8 @@ import { Profile } from '../types';
 import { DiplomaInfo } from '../components/DiplomaInfo';
 import { Faculty, Department, Promotion } from '../models/ModelsForUnivesity';
 import { fetchFaculties } from '../api/Faculty';
-import { fetchDepartmentByFacultyId } from '../api/Department';
-import { fetchPromotionByDepartmentId } from '../api/Promotion';
+import { fetchDepartmentsByFacultyId } from '../api/Department';
+import { fetchPromotionsByDepartmentId } from '../api/Promotion';
 import { DiplomaComponent } from '../components/DiplomaComponent';
 
 export interface DiplomaData {
@@ -83,7 +83,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
     useEffect(() => {
         const fetchDepartments = async () => {
             if (selectedFaculty) {
-                const { data, error } = await fetchDepartmentByFacultyId(selectedFaculty);
+                const { data, error } = await fetchDepartmentsByFacultyId(selectedFaculty);
                 if (error) {
                     console.error("Error fetching departments:", error);
                     return;
@@ -102,7 +102,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
     useEffect(() => {
         const fetchPromotions = async () => {
             if (selectedDepartment) {
-                const { data, error } = await fetchPromotionByDepartmentId(selectedDepartment);
+                const { data, error } = await fetchPromotionsByDepartmentId(selectedDepartment);
                 if (error) {
                     console.error("Error fetching promotions:", error);
                     return;

@@ -25,7 +25,7 @@ export async function fetchPromotionById(id: string) {
         .single();
 }
 
-export async function fetchPromotionByDepartmentId(departmentId: string) {
+export async function fetchPromotionsByDepartmentId(departmentId: string) {
     return await supabase
         .from("promotion")
         .select<string, Promotion>(`

@@ -13,7 +13,7 @@ export async function fetchDepartments() {
         );
 }
 
-export async function fetchDepartmentByFacultyId(facultyId: string) {
+export async function fetchDepartmentsByFacultyId(facultyId: string) {
     return await supabase
         .from("departement")
         .select<string, Department>(`

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Department, Faculty, NewDiploma, Promotion, StudentJointPromotion } from '../models/ModelsForUnivesity';
-import { fetchDepartmentByFacultyId } from '../api/Department';
-import { fetchPromotionByDepartmentId } from '../api/Promotion';
+import { fetchDepartmentsByFacultyId } from '../api/Department';
+import { fetchPromotionsByDepartmentId } from '../api/Promotion';
 import { v4 as uuidv4 } from 'uuid';
 import { CustomInput } from './Input';
 import QRCode from 'qrcode';
@@ -77,7 +77,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
   useEffect(() => {
     const fetchDepartments = async () => {
       if (selectedFaculty) {
-        const { data, error } = await fetchDepartmentByFacultyId(selectedFaculty);
+        const { data, error } = await fetchDepartmentsByFacultyId(selectedFaculty);
 
         if (error) {
           console.error("Error fetching departments:", error);
@@ -101,7 +101,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
   useEffect(() => {
     const fetchPromotions = async () => {
       if (selectedDepartment) {
-        const { data, error } = await fetchPromotionByDepartmentId(selectedDepartment);
+        const { data, error } = await fetchPromotionsByDepartmentId(selectedDepartment);
 
         if (error) {
           console.error("Error fetching promotions:", error);

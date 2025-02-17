@@ -78,15 +78,15 @@ export function SignerManagement({ profile }: SignerManagementProps) {
         try {
             console.log('newSigner', newSigner);
 
-            if(newSigner.faculte_id===null || newSigner.faculte_id==='') {
+            if (newSigner.faculte_id === null || newSigner.faculte_id === '') {
                 console.log('newSigner.faculte_id', newSigner.faculte_id);
-                
+
                 setNewSigner({ ...newSigner, faculte_id: null });
 
                 console.log('newSigner', newSigner);
-                
+
             }
-            
+
             const { error } = await addSigner({ ...newSigner, faculte_id: newSigner.faculte_id || '' });
 
             if (error) throw error;
@@ -314,7 +314,7 @@ export function SignerManagement({ profile }: SignerManagementProps) {
                                                         {editingSigner?.id === signer.id ? (
                                                             <div className="flex justify-end space-x-2">
                                                                 <button onClick={handleUpdateSigner} disabled={isUpdating} className="text-indigo-600 hover:text-indigo-900">
-                                                                    {isUpdating ? <div className="h-4 w-4 border-t-2 border-indigo-600 border-solid rounded-full animate-spin" /> : <Edit2 className="h-4 w-4" />}
+                                                                    {isUpdating ? <div className=" p-2 border h-4 w-4 border-t-2 border-indigo-600 border-solid rounded-full animate-spin" /> : <div className='p-2 border rounded-lg flex items-center gap-1 bg-blue-200'><Edit2 className="h-4 w-4" />Modifier</div>}
                                                                 </button>
                                                                 <button onClick={() => setEditingSigner(null)} className="text-gray-600 hover:text-gray-900">
                                                                     Annuler
@@ -322,10 +322,10 @@ export function SignerManagement({ profile }: SignerManagementProps) {
                                                             </div>
                                                         ) : (
                                                             <div className="flex justify-end space-x-2">
-                                                                <button onClick={() => setEditingSigner(signer)} className="text-indigo-600 hover:text-indigo-900">
+                                                                <button onClick={() => setEditingSigner(signer)} className="text-indigo-600 hover:text-indigo-900 p-3 border">
                                                                     <Edit2 className="h-4 w-4" />
                                                                 </button>
-                                                                <button onClick={() => handleDeleteSigner(signer.id)} disabled={isDeleting} className="text-red-600 hover:text-red-900">
+                                                                <button onClick={() => handleDeleteSigner(signer.id)} disabled={isDeleting} className="p-3 border text-red-600 hover:text-red-900">
                                                                     {isDeleting ? <div className="h-4 w-4 border-t-2 border-red-600 border-solid rounded-full animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                                                 </button>
                                                             </div>

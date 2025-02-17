@@ -11,6 +11,7 @@ export interface Department {
 export interface Promotion {
     id: string;
     libelle_promotion: string;
+    option: string;
 }
 
 export interface StudentJointPromotion {
@@ -19,9 +20,11 @@ export interface StudentJointPromotion {
     postnom: string;
     prenom: string;
     date_naissance: Date;
+    promotion_id: string;
     promotion: {
         id: string;
         libelle_promotion: string;
+        option: string;
         departement: {
             id: string;
             libelle_dept: string;

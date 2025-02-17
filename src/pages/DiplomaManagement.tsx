@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Edit, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { Edit, Eye, Loader, Plus, Search, Trash2 } from 'lucide-react';
 import { DiplomaJointStudent, Faculty, NewDiploma, StudentJointPromotion } from '../models/ModelsForUnivesity';
 import { addDiploma, deleteDiploma, updateDiploma } from '../api/Diploma';
 import { fetchStudentsJointPromotion } from '../api/Student';
@@ -224,6 +224,16 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
       </header>
 
       <div className="bg-white shadow rounded-lg">
+      <div className="flex justify-end">
+          <button
+            onClick={() => fetchDiplomas()}
+            type="submit"
+            className="inline-flex m-2 mr-4 items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-blue-800 bg-indigo-200 hover:bg-indigo-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <Loader className="h-5 w-5" />
+            Actualiser
+          </button>
+        </div>
         <div className="px-4 py-5 sm:p-6">
           <div className="mb-4">
             <div className="relative rounded-md shadow-sm">

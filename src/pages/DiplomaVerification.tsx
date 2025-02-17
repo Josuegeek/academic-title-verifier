@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Upload, QrCode } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { PDFDocument } from 'pdf-lib';
 import jsQR from 'jsqr';
-import { useNavigate } from 'react-router-dom';
 import { Profile } from '../types';
 import { DiplomaInfo } from '../components/DiplomaInfo';
+
+// Import pdfjs-dist
+import * as pdfjsLib from 'pdfjs-dist';
+import { RenderParameters } from 'pdfjs-dist/types/src/display/api';
+// Set workerSrc path
+pdfjsLib.GlobalWorkerOptions.workerSrc = `cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.mjs`;
 
 interface DiplomaData {
   id: string;
@@ -46,20 +50,12 @@ interface DiplomaVerificationProps {
 }
 
 export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
-  const navigate = useNavigate();
   const [qrCode, setQrCode] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDiploma, setSelectedDiploma] = useState<DiplomaData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (!profile) {
-      toast.error('Vous devez être connecté pour accéder à cette page.');
-      navigate(-1);
-    }
-  }, [profile, navigate]);
 
   const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +89,15 @@ export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
                 )
               )
             )
+          ),
+          deliver(
+              id,
+              nom,
+              postnom,
+              prenom,
+              role
           )
+
         `);
 
       if (qrCode) {
@@ -143,46 +147,98 @@ export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
   };
 
   const extractQrCodeFromPdf = async (file: File): Promise<string | null> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
-    const page = pdfDoc.getPage(0);
-    const { width, height } = page.getSize();
-    const qrCodeRegion = {
-      x: width - 150,
-      y: height - 150,
-      width: 150,
-      height: 150,
-    };
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.mjs`;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-
-    if (context) {
-
-      const imageData = context.getImageData(qrCodeRegion.x, qrCodeRegion.y, qrCodeRegion.width, qrCodeRegion.height);
-      const qrCode = jsQR(imageData.data, qrCodeRegion.width, qrCodeRegion.height);
-
-      const capturedImage = context.createImageData(qrCodeRegion.width, qrCodeRegion.height);
-      capturedImage.data.set(imageData.data);
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = qrCodeRegion.width;
-      tempCanvas.height = qrCodeRegion.height;
-      const tempContext = tempCanvas.getContext('2d');
-      if (tempContext) {
-        tempContext.putImageData(capturedImage, 0, 0);
-        const dataUrl = tempCanvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'captured_qr_code.png';
-        link.click();
+      let pdf: pdfjsLib.PDFDocumentProxy;
+      try {
+        pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+      } catch (pdfError: any) {
+        console.error("Error loading PDF:", pdfError);
+        setError("Erreur lors du chargement du PDF.");
+        toast.error("Erreur lors du chargement du PDF.");
+        return null;
       }
 
-      return qrCode ? qrCode.data : null;
-    }
+      let page: pdfjsLib.PDFPageProxy;
+      try {
+        page = await pdf.getPage(1);
+      } catch (pageError: any) {
+        console.error("Error getting page:", pageError);
+        setError("Erreur lors de la récupération de la page PDF.");
+        toast.error("Erreur lors de la récupération de la page PDF.");
+        return null;
+      }
 
-    return null;
+      const viewport = page.getViewport({ scale: 1.0 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) {
+        console.error("Could not get canvas context");
+        setError("Impossible d'obtenir le contexte du canvas.");
+        toast.error("Impossible d'obtenir le contexte du canvas.");
+        return null;
+      }
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      const renderContext: RenderParameters = {
+        canvasContext: context,
+        viewport: viewport,
+      };
+
+      try {
+        await page.render(renderContext).promise;
+      } catch (renderError: any) {
+        console.error("Error rendering PDF:", renderError);
+        setError("Erreur lors du rendu du PDF.");
+        toast.error("Erreur lors du rendu du PDF.");
+        return null;
+      }
+
+      // Convert canvas to image
+      const imageUrl = canvas.toDataURL("image/png");
+
+      // Create an image element
+      const img = new Image();
+      img.src = imageUrl;
+      await new Promise((resolve, reject) => {
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+      });
+
+      // Decode the QR code from the image
+      const imgCanvas = document.createElement('canvas');
+      imgCanvas.width = img.width;
+      imgCanvas.height = img.height;
+      const imgContext = imgCanvas.getContext('2d');
+      if (!imgContext) {
+        console.error("Could not get image canvas context");
+        setError("Impossible d'obtenir le contexte du canvas de l'image.");
+        toast.error("Impossible d'obtenir le contexte du canvas de l'image.");
+        return null;
+      }
+      imgContext.drawImage(img, 0, 0);
+      const imgData = imgContext.getImageData(0, 0, imgCanvas.width, imgCanvas.height);
+
+      const code = jsQR(imgData.data, imgCanvas.width, imgCanvas.height, {
+        inversionAttempts: 'dontInvert',
+      });
+
+      if (code) {
+        return code.data;
+      } else {
+        console.log('No QR code found');
+        return null;
+      }
+
+    } catch (error: any) {
+      console.error('Error extracting QR code from PDF:', error);
+      setError(`Erreur lors de l'extraction du code QR du PDF: ${error.message}`);
+      toast.error(`Erreur lors de l'extraction du code QR du PDF: ${error.message}`);
+      return null;
+    }
   };
 
   const closeModal = () => {
@@ -220,7 +276,7 @@ export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
                   id="qrCode"
                   value={qrCode}
                   onChange={(e) => setQrCode(e.target.value)}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md p-2"
+                  className="border focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md p-2"
                   placeholder="Entrez le code QR du diplôme"
                   disabled={!!file}
                 />
@@ -243,7 +299,7 @@ export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
                   id="diplomaFile"
                   onChange={handleFileChange}
                   accept="application/pdf"
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md p-2"
+                  className="border focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md p-2"
                   disabled={!!qrCode}
                 />
               </div>

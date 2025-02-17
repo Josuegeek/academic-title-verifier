@@ -140,7 +140,7 @@ export function DiplomaInfo({ result, closeModal }: DiplomaInfoProps) {
                         <div>
                             <dt className="text-sm font-medium text-gray-500">Signé et délivré par</dt>
                             <dd className="mt-1 text-sm text-gray-900">
-                                {`${result.diploma.deliver.nom} ${result.diploma.deliver.postnom} ${result.diploma.deliver.prenom} (${result.diploma.deliver.role})`}
+                                {`${result.diploma.deliver?.nom} ${result.diploma.deliver?.postnom} ${result.diploma.deliver?.prenom} (${result.diploma.deliver?.role})`}
                             </dd>
                         </div>
                         <div className="sm:col-span-2">

@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { AddUserModal } from '../components/AddUserModal';
 
 interface UserProfile {
   id: string;
@@ -28,8 +27,7 @@ export function UserManagement({ profile }: UserManagementProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (profile && profile.role !== 'admin') {
@@ -202,7 +200,7 @@ export function UserManagement({ profile }: UserManagementProps) {
                                     role: e.target.value as 'admin' | 'university_staff' | 'verifier',
                                   })
                                 }
-                                className="p-2 border shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                className="p-2 border border-blue-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm rounded-md"
                               >
                                 <option value="admin">Admin</option>
                                 <option value="university_staff">University Staff</option>
@@ -255,12 +253,6 @@ export function UserManagement({ profile }: UserManagementProps) {
           </div>
         </div>
       </div>
-
-      <AddUserModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onUsersChange={fetchUsers}
-      />
     </div>
   );
 }
