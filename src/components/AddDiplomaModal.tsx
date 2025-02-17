@@ -5,7 +5,7 @@ import { fetchPromotionByDepartmentId } from '../api/Promotion';
 import { v4 as uuidv4 } from 'uuid';
 import { CustomInput } from './Input';
 import QRCode from 'qrcode';
-import { PDFDocument, rgb, StandardFonts} from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { toast } from 'react-toastify';
 import { fetchSigners, SignerM } from '../api/Signer';
 
@@ -55,6 +55,8 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
   const applyInitialDiploma = () => {
     if (initialDiploma) {
       setNewDiploma(initialDiploma);
+      console.log(newDiploma);
+      
       const student = students.find(s => s.id === initialDiploma.etudiant_id);
       if (student) {
         setInitialStudent(student);
@@ -149,13 +151,13 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     console.log(name, value);
-    
+
     setNewDiploma((prevDiploma) => ({
       ...prevDiploma,
       [name]: value,
     }));
     console.log(newDiploma);
-    
+
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,9 +251,9 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
 
       firstPage.drawText('@Copyright Danisi Kibeye', {
         x: 20,
-        y: 20,
+        y: 30,
         font,
-        size: 14,
+        size: 12,
         color: rgb(0, 0, 0),
       });
 
@@ -360,6 +362,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                       Type de document
                     </label>
                     <select
+                      required
                       id="libelle_titre"
                       name="libelle_titre"
                       value={newDiploma.libelle_titre}
@@ -380,6 +383,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                       Année académique
                     </label>
                     <select
+                      required
                       id="annee_academique"
                       name="annee_academique"
                       value={newDiploma.annee_academique}
@@ -425,13 +429,14 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                   <div className='border p-2 border-gray-500 rounded-lg'>
                     <CustomInput idName='studentSearch' value={studentSearchTerm} label='Chercher un étudiant' onChange={(e) => setStudentSearchTerm(e.target.value)} className='' type='text' options={[]}
                     />
-                    <CustomInput idName='etudiant_id' value={newDiploma.etudiant_id} label='Étudiant' onChange={handleInputChange} className='' type='select' options={filteredStudents} isStudentSelect={true}
+                    <CustomInput required={true} idName='etudiant_id' value={newDiploma.etudiant_id} label='Étudiant' onChange={handleInputChange} className='' type='select' options={filteredStudents} isStudentSelect={true}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="signe_par" className="block text-sm font-medium text-gray-700">Signataire</label>
                     <select
+                      required
                       id="signe_par"
                       name="signe_par"
                       value={newDiploma.signe_par}
@@ -473,7 +478,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                             className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
                           >
                             <span>Télécharger un fichier</span>
-                            <input id="diplomaFile" name="diplomaFile" type="file" className="sr-only" onChange={handleFileChange} accept="application/pdf" />
+                            <input required id="diplomaFile" name="diplomaFile" type="file" className="sr-only" onChange={handleFileChange} accept="application/pdf" />
                           </label>
                           <p className="pl-1">ou glisser-déposer</p>
                         </div>
@@ -510,7 +515,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                       </svg>
                     ) : (
-                      'Ajouter'
+                      (initialDiploma == null) ? 'Ajouter' : 'Modifier'
                     )}
                   </button>
                   <button

@@ -11,7 +11,7 @@ import type { Profile } from '../types';
 import { useNavigate } from 'react-router-dom';
 
 interface DiplomaManagementProps {
-  profile: Profile|null;
+  profile: Profile | null;
 }
 
 export function DiplomaManagement({ profile }: DiplomaManagementProps) {
@@ -60,7 +60,9 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
                 postnom,
                 prenom
             ),
-            est_authentique
+            est_authentique,
+            annee_academique,
+            signe_par
             `
         ).order('created_at', { ascending: false });
 
@@ -138,7 +140,7 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
       let fileUrl: string | null = null;
 
       if (selectedFile) {
-        const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9]/g, '');
+        const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9]/g, '') + Date.now();
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('diploma-files')
           .upload(`${newDiploma.etudiant_id}/${sanitizedFileName}`, selectedFile, {
@@ -146,17 +148,17 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
             upsert: false
           });
 
-          console.log(uploadData);
-          
+        console.log(uploadData);
+
         if (uploadError) throw uploadError;
 
         const { data, error: signedUrlError } = await supabase
           .storage
           .from('diploma-files')
           .createSignedUrl(uploadData.path, 60 * 60 * 24 * 100);
-          console.log(data);
+        console.log(data);
         if (signedUrlError) throw signedUrlError;
-        
+
         fileUrl = data?.signedUrl || null;
       }
 
@@ -167,7 +169,7 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
       if (diplomaError) throw diplomaError;
 
       toast.success('Diplôme ajouté avec succès !');
-      
+
       fetchDiplomas();
 
       setIsAddingDiploma(false); // Close modal
@@ -286,6 +288,17 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
                               <div className="text-sm text-gray-900">
                                 {`${diploma.etudiant?.nom} ${diploma.etudiant?.postnom} ${diploma.etudiant?.prenom}`}
                               </div>
+                            </td>
+                            <td>
+                              {diploma.est_authentique ? (
+                                <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                  Authentifié
+                                </span>
+                              ) :
+                                <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                  non Authentifié par l'ESU
+                                </span>
+                              }
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <button

@@ -25,6 +25,13 @@ interface DiplomaInfoProps {
                     };
                 };
             };
+            deliver: {
+                id: string;
+                nom: string;
+                postnom: string;
+                prenom: string;
+                role: 'Doyen de la faculté' | 'Secrétaire générale académique';
+            }
         };
     } | null;
     closeModal: () => void;
@@ -43,10 +50,10 @@ export function DiplomaInfo({ result, closeModal }: DiplomaInfoProps) {
                         onClick={closeModal}
                         className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 focus:outline-none"
                     >
-                        <X className="h-6 w-6 bg-red-400 rounded-full p-1" />
+                        <X className={`h-6 w-6 ${result.isAuthentic ? '' : 'bg-red-800'} rounded-full p-1"`} />
                     </button>
                     <div className={`rounded-md ${result.isAuthentic ? 'bg-green-50' : 'bg-red-50'} p-4`}>
-                        <div className="flex">
+                        <div className="flex items-center">
                             <div className="flex-shrink-0">
                                 {result.isAuthentic ? (
                                     <CheckCircle className="h-5 w-5 text-green-400" />
@@ -61,7 +68,18 @@ export function DiplomaInfo({ result, closeModal }: DiplomaInfoProps) {
                                         : 'Diplôme enregistré mais non authentifié par le ministère de l\'enseignement supérieur et universitaire'}
                                 </h3>
                             </div>
+                            <div className="ml-3 flex justify-end">
+                                <a
+                                    href={result.diploma.fichier_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center px-4 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    Voir le PDF
+                                </a>
+                            </div>
                         </div>
+
                     </div>
                 </div>
                 <div className="p-6 w-full overflow-y-auto">
@@ -119,6 +137,12 @@ export function DiplomaInfo({ result, closeModal }: DiplomaInfoProps) {
                                 {result.diploma.etudiant.promotion.departement.faculte.libelle_fac}
                             </dd>
                         </div>
+                        <div>
+                            <dt className="text-sm font-medium text-gray-500">Signé et délivré par</dt>
+                            <dd className="mt-1 text-sm text-gray-900">
+                                {`${result.diploma.deliver.nom} ${result.diploma.deliver.postnom} ${result.diploma.deliver.prenom} (${result.diploma.deliver.role})`}
+                            </dd>
+                        </div>
                         <div className="sm:col-span-2">
                             <dt className="text-sm font-medium text-gray-500">
                                 Informations de l'étudiant
@@ -136,16 +160,6 @@ export function DiplomaInfo({ result, closeModal }: DiplomaInfoProps) {
                             </dd>
                         </div>
                     </dl>
-                    <div className="mt-6 flex justify-end">
-                        <a
-                            href={result.diploma.fichier_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                            Voir le PDF
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>

@@ -11,8 +11,9 @@ import { Faculty, Department, Promotion } from '../models/ModelsForUnivesity';
 import { fetchFaculties } from '../api/Faculty';
 import { fetchDepartmentByFacultyId } from '../api/Department';
 import { fetchPromotionByDepartmentId } from '../api/Promotion';
+import { DiplomaComponent } from '../components/DiplomaComponent';
 
-interface DiplomaData {
+export interface DiplomaData {
     id: string;
     libelle_titre: string;
     date_delivrance: string;
@@ -23,6 +24,7 @@ interface DiplomaData {
     fichier_url: string;
     est_authentique: boolean;
     etudiant: {
+        id: string;
         nom: string;
         postnom: string;
         prenom: string;
@@ -39,6 +41,13 @@ interface DiplomaData {
                 };
             };
         };
+    };
+    deliver: {
+        id: string;
+        nom: string;
+        postnom: string;
+        prenom: string;
+        role: 'Doyen de la faculté' | 'Secrétaire générale académique';
     };
 }
 
@@ -116,33 +125,41 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             let query = supabase
                 .from('titre_academique')
                 .select<string, DiplomaData>(`
-          id,
-          libelle_titre,
-          date_delivrance,
-          lieu,
-          qr_code,
-          est_authentique,
-          annee_academique,
-          fichier_url,
-          etudiant (
-            nom,
-            postnom,
-            prenom,
-            date_naissance,
-            promotion (
-              id,
-              libelle_promotion,
-              departement (
-                id,
-                libelle_dept,
-                faculte (
-                  id,
-                  libelle_fac
-                )
-              )
-            )
-          )
-        `);
+                    id,
+                    libelle_titre,
+                    date_delivrance,
+                    lieu,
+                    qr_code,
+                    est_authentique,
+                    annee_academique,
+                    fichier_url,
+                    etudiant (
+                        id,
+                        nom,
+                        postnom,
+                        prenom,
+                        date_naissance,
+                        promotion (
+                            id,
+                            libelle_promotion,
+                            departement (
+                                id,
+                                libelle_dept,
+                                faculte (
+                                id,
+                                libelle_fac
+                                )
+                            )
+                        )
+                    ),
+                    deliver(
+                        id,
+                        nom,
+                        postnom,
+                        prenom,
+                        role
+                    )
+                `);
 
             if (selectedFaculty) {
                 query = query.eq('etudiant.promotion.departement.faculte.id', selectedFaculty);
@@ -157,7 +174,8 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             const { data, error } = await query;
 
             if (error) throw error;
-
+            console.log(data);
+            
             setDiplomas(data || []);
         } catch (error) {
             console.error('Error fetching diplomas:', error);
@@ -166,6 +184,10 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchDiplomas();
+    }, [selectedFaculty, selectedDepartment, selectedPromotion]);
 
     const fetchFacultiess = async () => {
         try {
@@ -186,7 +208,36 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             let authenticatedFile = null;
             const { data: diplomaData, error: diplomaError } = await supabase
                 .from('titre_academique')
-                .select('fichier_url')
+                .select<string, DiplomaData>(`
+                    id,
+                    libelle_titre,
+                    date_delivrance,
+                    lieu,
+                    qr_code,
+                    est_authentique,
+                    annee_academique,
+                    fichier_url,
+                    etudiant (
+                      id,
+                      nom,
+                      postnom,
+                      prenom,
+                      date_naissance,
+                      promotion (
+                        id,
+                        libelle_promotion,
+                        departement (
+                          id,
+                          libelle_dept,
+                          faculte (
+                            id,
+                            libelle_fac
+                          )
+                        )
+                      )
+                    ),
+                    signe_par
+                  `)
                 .eq('id', diplomaId)
                 .single();
 
@@ -200,17 +251,32 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             } else {
                 throw new Error('Fichier PDF non trouvé pour ce diplôme.');
             }
+
             if (!authenticatedFile) {
                 throw new Error('Fichier PDF non trouvé.');
             }
 
             const authenticatedFileWithPage = await addAuthenticationPage(authenticatedFile, qrCodeValue);
             if (authenticatedFileWithPage) {
+                const fileName = diplomaData.etudiant.id + "/" + (diplomaData.fichier_url?.split('/').pop()?.split('?')[0] || 'diploma.pdf');
+                console.log("filename 1 :", fileName);
+
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('diploma-files')
+                    .update(fileName, authenticatedFileWithPage, {
+                        upsert: true
+                    });
+
+                console.log("File name-> :", fileName, uploadData);
+
+                if (uploadError) throw uploadError;
+
                 // Update the 'est_authentique' attribute to TRUE
                 const { error: updateError } = await supabase
                     .from('titre_academique')
-                    .update({ est_authentique: true, fichier_url: URL.createObjectURL(authenticatedFileWithPage) })
+                    .update({ est_authentique: true })
                     .eq('id', diplomaId);
+
 
                 if (updateError) {
                     console.error('Error updating est_authentique:', updateError);
@@ -218,6 +284,9 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
                 } else {
                     toast.success('Diplôme authentifié avec succès !');
                     fetchDiplomas();
+                    diplomaData.est_authentique = true;
+                    setSelectedDiploma(diplomaData);
+                    setIsModalOpen(true);
                 }
             } else {
                 toast.error('Erreur lors de l\'ajout de la page d\'authentification.');
@@ -236,8 +305,8 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             const arrayBuffer = await file.arrayBuffer();
             const pdfDoc = await PDFDocument.load(arrayBuffer);
 
-            // Add a new page
-            const page = pdfDoc.addPage(PageSizes.A4);
+            // Add a new page at the beginning
+            const page = pdfDoc.insertPage(0, PageSizes.A4);
 
             // Embed the ESU logo
             const esuLogoUrl = '/imgs/logo_esu.png';
@@ -260,66 +329,82 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             const pageWidth = page.getWidth();
             const pageHeight = page.getHeight();
 
-            // Header
-            page.drawImage(flagDrcImage, {
-                x: 50,
-                y: pageHeight - 100,
-                width: 50,
-                height: 50,
+            const text1 = 'République Démocratique du Congo';
+            const text2 = 'Ministère de l\'Enseignement Supérieur et Universitaire';
+
+            const text1Width = font.widthOfTextAtSize(text1, 16);
+            const text2Width = font.widthOfTextAtSize(text2, 16);
+
+            page.drawText(text1, {
+                x: (pageWidth - text1Width) / 2,
+                y: pageHeight - 50,
+                font,
+                size: 16,
+                color: rgb(0, 0, 0),
             });
 
-            page.drawText('République Démocratique du Congo', {
-                x: 110,
+            page.drawText(text2, {
+                x: (pageWidth - text2Width) / 2,
                 y: pageHeight - 70,
                 font,
                 size: 16,
                 color: rgb(0, 0, 0),
             });
 
-            page.drawText('Ministère de l\'Enseignement Supérieur et Universitaire', {
-                x: 110,
-                y: pageHeight - 90,
-                font,
-                size: 16,
-                color: rgb(0, 0, 0),
+            // Header
+            const totalImageWidth = 250;
+            const startX = (pageWidth - totalImageWidth) / 2;
+
+            page.drawImage(flagDrcImage, {
+                x: startX,
+                y: pageHeight - 150,
+                width: 80,
+                height: 50,
+            });
+
+            page.drawImage(esuLogoImage, {
+                x: startX + 50 + 20, // 50 is the width of flagDrcImage
+                y: pageHeight - 150,
+                width: 150,
+                height: 50,
             });
 
             page.drawImage(qrCodeImage, {
-                x: pageWidth - 150,
-                y: pageHeight - 150,
-                width: 100,
-                height: 100,
+                x: (pageWidth - 150) / 2,
+                y: (pageHeight - 200) / 2 + 60,
+                width: 150,
+                height: 150,
             });
 
-            // Content
-            page.drawImage(esuLogoImage, {
-                x: (pageWidth - 100) / 2,
-                y: (pageHeight - 200) / 2 + 50,
-                width: 100,
-                height: 100,
-            });
+            const text3 = 'Document authentifié par :';
+            const text4 = 'Mohindo Nzangi';
+            const text5 = "Ministre de l'enseignement Supérieur et Universitaire";
 
-            page.drawText('Diplôme authentifié par le', {
-                x: (pageWidth - 300) / 2,
+            const text3Width = font.widthOfTextAtSize(text3, 14);
+            const text4Width = font.widthOfTextAtSize(text4, 18);
+            const text5Width = font.widthOfTextAtSize(text5, 11);
+
+            page.drawText(text3, {
+                x: (pageWidth - text3Width) / 2,
                 y: (pageHeight - 200) / 2 - 20,
                 font,
-                size: 18,
+                size: 14,
                 color: rgb(0, 0, 0),
             });
 
-            page.drawText('Ministère de l\'Enseignement Supérieur et Universitaire', {
-                x: (pageWidth - 400) / 2,
-                y: (pageHeight - 200) / 2 - 40,
-                font,
-                size: 18,
-                color: rgb(0, 0, 0),
-            });
-
-            page.drawText('Mohindo Nzangi', {
-                x: (pageWidth - 150) / 2,
+            page.drawText(text4, {
+                x: (pageWidth - text4Width) / 2,
                 y: (pageHeight - 200) / 2 - 80,
                 font,
                 size: 18,
+                color: rgb(0, 0, 0),
+            });
+
+            page.drawText(text5, {
+                x: (pageWidth - text5Width) / 2,
+                y: (pageHeight - 200) / 2 - 100,
+                font,
+                size: 11,
                 color: rgb(0, 0, 0),
             });
 
@@ -389,8 +474,12 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
                         <select
                             id="faculty"
                             value={selectedFaculty}
-                            onChange={(e) => setSelectedFaculty(e.target.value)}
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border p-2"
+                            onChange={(e) => {
+                                setSelectedFaculty(e.target.value);
+                                setSelectedDepartment('');
+                                setSelectedPromotion('');
+                            }}
                         >
                             <option value="">Toutes les facultés</option>
                             {faculties.map((faculty) => (
@@ -405,8 +494,11 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
                         <select
                             id="department"
                             value={selectedDepartment}
-                            onChange={(e) => setSelectedDepartment(e.target.value)}
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            onChange={(e) => {
+                                setSelectedDepartment(e.target.value);
+                                setSelectedPromotion('');
+                            }}
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border p-2"
                         >
                             <option value="">Tous les départements</option>
                             {departments.map((department) => (
@@ -422,7 +514,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
                             id="promotion"
                             value={selectedPromotion}
                             onChange={(e) => setSelectedPromotion(e.target.value)}
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border p-2"
                         >
                             <option value="">Toutes les promotions</option>
                             {promotions.map((promotion) => (
@@ -441,7 +533,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        className="block w-full pl-10 pr-3 py-2 border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2"
                         placeholder="Rechercher un diplôme..."
                     />
                 </div>
@@ -454,39 +546,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
             ) : (
                 <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
                     {filteredDiplomas.map((diploma) => (
-                        <div key={diploma.id} className="p-6">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-lg font-medium text-gray-900">
-                                        {diploma.libelle_titre}
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        Étudiant: {diploma.etudiant?.nom} {diploma.etudiant?.postnom} {diploma.etudiant?.prenom}
-                                    </p>
-                                </div>
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={() => handleShowDiplomaDetails(diploma)}
-                                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    >
-                                        <FileText className="h-4 w-4 mr-2" />
-                                        Détails
-                                    </button>
-                                    {diploma.est_authentique ? (
-                                        <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                            Authentifié
-                                        </span>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleAuthentication(diploma.id, diploma.qr_code)}
-                                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                        >
-                                            Authentifier
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        DiplomaComponent({ diploma, handleAuthentication, handleShowDiplomaDetails })
                     ))}
                 </div>
             )}

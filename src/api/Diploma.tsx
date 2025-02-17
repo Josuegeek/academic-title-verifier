@@ -58,7 +58,8 @@ export async function addDiploma(diploma: NewDiploma) {
                 lieu: diploma.lieu,
                 etudiant_id: diploma.etudiant_id,
                 est_authentique: diploma.est_authentique,
-                annee_academique: diploma.annee_academique
+                annee_academique: diploma.annee_academique,
+                signe_par: diploma.signe_par
             }
 
         );

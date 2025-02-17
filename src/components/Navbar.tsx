@@ -57,8 +57,8 @@ export function Navbar({ profile }: NavbarProps) {
 
   return (
     <div className="bg-white shadow-sm md:h-full relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 max-[1200px]:px-1">
-        <div className="flex flex-col md:h-screen max-md:w-auto max-md:overflow-visible max-[1200px]:w-12 max-[1200px]:overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 max-[1200px]:px-1 h-full">
+        <div className="flex flex-col max-md:w-auto max-md:overflow-visible max-[1200px]:w-12 max-[1200px]:overflow-hidden">
           {/* Top Bar (Burger Menu, Logo, and User Dropdown) */}
           <div className="flex flex-wrap items-center justify-between py-3 rounded-lg bg-gray-200 h-fit lg:max-w-56">
             {/* Burger menu button (show on small screens) */}
@@ -130,9 +130,9 @@ export function Navbar({ profile }: NavbarProps) {
           </div>
 
           {/* Navigation links (show on medium+ screens, or when burger menu is open) */}
-          <div className={`flex-grow flex flex-col max-md:shadow-lg max-md:h-screen md:flex md:flex-row transition-transform duration-300 ease-in-out ${burgerOpen ? 'translate-x-0' : '-translate-x-full'} 
-                            md:translate-x-0 absolute md:relative top-16 left-0 w-64 md:w-auto h-full md:h-auto bg-white z-40 md:z-0`}>
-            <nav className="flex-1 px-2 bg-white space-y-1" aria-label="Sidebar">
+          <div className={`flex-grow max-md:h-[91vh] h-full flex flex-col max-md:shadow-lg md:flex md:flex-row transition-transform duration-300 ease-in-out ${burgerOpen ? 'translate-x-0' : '-translate-x-full'} 
+                            md:translate-x-0 absolute md:relative top-16 left-0 w-64 md:w-auto md:h-auto bg-white z-40 md:z-0`}>
+            <nav className="flex-1 px-2 py-2 bg-white space-y-1" aria-label="Sidebar">
               <NavLink
                 to="/dashboard"
                 className={({ isActive }) =>

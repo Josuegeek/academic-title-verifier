@@ -32,6 +32,13 @@ interface DiplomaData {
       };
     };
   };
+  deliver: {
+    id: string;
+    nom: string;
+    postnom: string;
+    prenom: string;
+    role: 'Doyen de la faculté' | 'Secrétaire générale académique';
+  }
 }
 
 interface DiplomaVerificationProps {

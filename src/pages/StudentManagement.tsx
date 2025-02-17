@@ -248,6 +248,7 @@ export function StudentManagement({ profile }: StudentManagementProps) {
                   Nom
                 </label>
                 <input
+                  required
                   type="text"
                   id="nom"
                   value={newStudent.nom}
@@ -260,6 +261,7 @@ export function StudentManagement({ profile }: StudentManagementProps) {
                   Post-nom
                 </label>
                 <input
+                  required
                   type="text"
                   id="postnom"
                   value={newStudent.postnom}
@@ -272,6 +274,7 @@ export function StudentManagement({ profile }: StudentManagementProps) {
                   Prénom
                 </label>
                 <input
+                  required
                   type="text"
                   id="prenom"
                   value={newStudent.prenom}
@@ -286,6 +289,7 @@ export function StudentManagement({ profile }: StudentManagementProps) {
                   Date de naissance
                 </label>
                 <input
+                  required
                   type="date"
                   id="date_naissance"
                   value={newStudent.date_naissance}
@@ -298,6 +302,7 @@ export function StudentManagement({ profile }: StudentManagementProps) {
                   Promotion
                 </label>
                 <select
+                  required
                   id="promotion"
                   value={newStudent.promotion_id}
                   onChange={(e) => setNewStudent({ ...newStudent, promotion_id: e.target.value })}
