@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Search, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Student as StudentType, Promotion, StudentJointPromotion } from '../models/ModelsForUnivesity';
+import { Promotion, StudentJointPromotion } from '../models/ModelsForUnivesity';
 import { fetchPromotionsByDepartmentId } from '../api/Promotion';
 import { fetchDepartmentsByFacultyId } from '../api/Department';
 import { fetchFaculties } from '../api/Faculty';
@@ -46,7 +46,6 @@ export function StudentManagement({ profile }: StudentManagementProps) {
   const [selectedFaculty, setSelectedFaculty] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedPromotion, setSelectedPromotion] = useState('');
-  const [promotionSearchTerm, setPromotionSearchTerm] = useState('');
   const [filteredStudents, setFilteredStudents] = useState<StudentJointPromotion[]>([]);
 
   useEffect(() => {
@@ -228,7 +227,6 @@ export function StudentManagement({ profile }: StudentManagementProps) {
     setSelectedFaculty('');
     setSelectedDepartment('');
     setSelectedPromotion('');
-    setPromotionSearchTerm('');
   };
 
   const handleSaveStudent = async (studentData: any) => {
@@ -283,7 +281,6 @@ export function StudentManagement({ profile }: StudentManagementProps) {
       setSelectedFaculty('');
       setSelectedDepartment('');
       setSelectedPromotion('');
-      setPromotionSearchTerm('');
     }
   };
 
@@ -310,11 +307,6 @@ export function StudentManagement({ profile }: StudentManagementProps) {
       setLoading(false);
     }
   };
-
-  const filteredPromotions = promotions.filter(promotion => {
-    const searchString = promotionSearchTerm.toLowerCase();
-    return promotion.libelle_promotion.toLowerCase().includes(searchString);
-  });
 
   return (
     <div className="space-y-6">

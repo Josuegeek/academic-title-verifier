@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { fetchPromotions, fetchPromotionsByDepartmentId } from '../api/Promotion';
-import { Department, Faculty, Promotion, StudentJointPromotion } from '../models/ModelsForUnivesity';
+import { fetchPromotionsByDepartmentId } from '../api/Promotion';
+import { Department, Faculty, Promotion } from '../models/ModelsForUnivesity';
 import { fetchFaculties } from '../api/Faculty';
 import { fetchDepartmentsByFacultyId } from '../api/Department';
 
@@ -31,6 +31,8 @@ const StudentModal: React.FC<StudentModalProps> = ({ isOpen, onClose, onSubmit, 
         const loadData = async () => {
             const facultiesData = (await fetchFaculties()).data;
             setFaculties(facultiesData || []);
+            console.log(selectedPromotion);
+            
 
             if (selectedFaculty) {
                 const departmentsData = (await fetchDepartmentsByFacultyId(selectedFaculty)).data;

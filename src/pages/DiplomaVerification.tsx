@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Upload, QrCode } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -59,6 +59,7 @@ export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
 
   const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log(profile);
     setLoading(true);
     setError(null);
     setSelectedDiploma(null);
@@ -132,7 +133,7 @@ export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
       }
     } catch (error) {
       console.log(error);
-      setError(error instanceof Error ? error.message : 'Une erreur est survenue');
+      setError(error instanceof Error ? error.message : 'Les informations rentrées ne correspondent pas à un diplôme enregistré.');
       toast.error('Les informations rentrées ne correspondent pas à un diplôme enregistré.');
     } finally {
       setLoading(false);

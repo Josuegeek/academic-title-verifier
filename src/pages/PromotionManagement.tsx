@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Search, Loader, Edit, Edit2Icon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Loader, Edit2Icon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -51,7 +51,6 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
   const [error, setError] = useState<string | null>(null);
   const [departmentSearchTerm, setDepartmentSearchTerm] = useState('');
   const [tableSearchTerm, setTableSearchTerm] = useState('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (profile?.role !== 'university_staff') {
@@ -62,7 +61,7 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
 
   const fetchPromotions = useCallback(async () => {
     try {
-      setIsRefreshing(true);
+      //setIsRefreshing(true);
       setLoading(true);
       const { data, error } = await supabase
         .from('promotion')
@@ -84,7 +83,7 @@ export function PromotionManagement({ profile }: PromotionManagementProps) {
       setError('Erreur lors du chargement des promotions');
       toast.error('Erreur lors du chargement des promotions');
     } finally {
-      setIsRefreshing(false);
+      //setIsRefreshing(false);
       setLoading(false);
     }
   }, []);

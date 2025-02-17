@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Search, Loader } from 'lucide-react';
+import { Edit2, Trash2, Search, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { useNavigate } from 'react-router-dom';
