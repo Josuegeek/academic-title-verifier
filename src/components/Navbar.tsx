@@ -29,8 +29,12 @@ export function Navbar({ profile }: NavbarProps) {
   const [burgerOpen, setBurgerOpen] = useState(false);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
+    try {
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const dropdownRef = useRef<HTMLDivElement>(null);
