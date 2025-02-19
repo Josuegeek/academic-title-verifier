@@ -31,10 +31,13 @@ export function Navbar({ profile }: NavbarProps) {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
       navigate('/');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error signing out:', (error as Error).message);
       toast.error('Erreur lors de la déconnexion');
     }
   };
