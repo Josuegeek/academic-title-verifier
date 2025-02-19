@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types';
+import { toast } from 'react-toastify';
 
 interface NavbarProps {
   profile: Profile | null;
@@ -34,6 +35,7 @@ export function Navbar({ profile }: NavbarProps) {
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
+      toast.error('Erreur lors de la déconnexion');
     }
   };
 
