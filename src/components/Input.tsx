@@ -9,9 +9,10 @@ interface InputProps {
     options: Object[];
     isStudentSelect?: boolean;
     required?: boolean;
+    isPromotionSelect?: boolean;
 }
 
-export function CustomInput({ idName, value, onChange, className, type, label, options, isStudentSelect, required }: InputProps) {
+export function CustomInput({ idName, value, onChange, className, type, label, options, isStudentSelect, required, isPromotionSelect }: InputProps) {
     return (
         <div>
             <label htmlFor={idName} className="block text-sm font-medium text-gray-700">
@@ -40,7 +41,7 @@ export function CustomInput({ idName, value, onChange, className, type, label, o
                         <option value="">{(isStudentSelect) ? 'Selectionnez un étudiant' : `Toutes les ${label}s`}</option>
                         {options.map((option) => (
                             <option key={Object.values(option)[0]} value={Object.values(option)[0]}>
-                                {isStudentSelect ? `${Object.values(option)[1]} ${Object.values(option)[2]} ${Object.values(option)[3]}` : Object.values(option)[1]}
+                                {isStudentSelect ? `${Object.values(option)[1]} ${Object.values(option)[2]} ${Object.values(option)[3]}` : (isPromotionSelect) ? Object.values(option)[1] + " " + Object.values(option)[3] : Object.values(option)[1]}
                             </option>
                         ))}
                     </select>

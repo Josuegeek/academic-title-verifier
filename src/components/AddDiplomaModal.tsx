@@ -419,7 +419,7 @@ const AddDiplomaModal: React.FC<AddDiplomaModalProps> = ({ isSubmitting, isOpen,
                   </div>
 
                   <div>
-                    <CustomInput idName='selectedPromotion' value={selectedPromotion} label='Promotion'
+                    <CustomInput isPromotionSelect={true} idName='selectedPromotion' value={selectedPromotion} label='Promotion'
                       onChange={(e) => {
                         setSelectedPromotion(e.target.value);
                       }} className='' type='select' options={promotions}

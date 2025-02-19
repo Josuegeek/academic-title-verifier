@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Link } from 'react-router-dom';
 import { GraduationCap, Shield, Search, Users, CloudCog } from 'lucide-react';
 
@@ -88,7 +88,7 @@ export function LandingPage({ user }: LandingPageProps) {
         <div className="max-lg:top-0 max-lg:size-full max-md:-mb-7 absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
           <img
             className="size-full object-cover lg:w-full lg:h-full"
-            src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80"
+            src="/imgs/hero_back.jpeg"
             alt="Graduation ceremony"
           />
         </div>

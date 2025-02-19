@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
+import emailjs from '@emailjs/browser';
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
 import QRCode from 'qrcode';
 import { useNavigate } from 'react-router-dom';
@@ -49,6 +50,7 @@ export interface DiplomaData {
         prenom: string;
         role: 'Doyen de la faculté' | 'Secrétaire générale académique';
     };
+    email_receiver: string;
 }
 
 interface AuthenticateDiplomaProps {
@@ -69,6 +71,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
     const [selectedDepartment, setSelectedDepartment] = useState('');
     const [selectedPromotion, setSelectedPromotion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [authenticationStatus, setAuthenticationStatus] = useState<'all' | 'authenticated' | 'unauthenticated'>('all');
 
     useEffect(() => {
         if (profile?.role !== 'esu_staff') {
@@ -175,7 +178,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
 
             if (error) throw error;
             console.log(data);
-            
+
             setDiplomas(data || []);
         } catch (error) {
             console.error('Error fetching diplomas:', error);
@@ -187,7 +190,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
 
     useEffect(() => {
         fetchDiplomas();
-    }, [selectedFaculty, selectedDepartment, selectedPromotion]);
+    }, [selectedFaculty, selectedDepartment, selectedPromotion, authenticationStatus]);
 
     const fetchFacultiess = async () => {
         try {
@@ -197,6 +200,41 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
         } catch (error) {
             console.error('Error fetching faculties:', error);
             setError('Erreur lors du chargement des facultés');
+        }
+    };
+
+    const handleSendEmail = async (diploma: DiplomaData) => {
+        if (!diploma) {
+            toast.error('Aucun diplôme sélectionné.');
+            return;
+        }
+
+        try {
+
+            const emailjsSender = await emailjs.send('service_bb7rnfa', 'template_ehmyf4i', {
+
+                to_email: diploma.email_receiver,
+                to_name: diploma.etudiant?.nom + ' ' + diploma.etudiant?.prenom,
+                message: `${diploma.fichier_url}.`,
+                from_email: '',
+                from_name: 'DiplomaVerifier',
+                diploma_title: diploma.libelle_titre,
+            }, {
+                publicKey: 'SREv3TVssgSmICarN',
+            })
+
+            console.log(emailjsSender);
+
+
+            if (emailjsSender.status !== 200) {
+                throw new Error('Erreur lors de l\'envoi de l\'email.');
+            } else {
+                console.log('Email sent successfully:');
+                toast.success('Email envoyé avec succès !');
+            }
+        } catch (error) {
+            console.error('Error calling function:', error);
+            toast.error('Erreur lors de l\'envoi d\'email.');
         }
     };
 
@@ -236,7 +274,14 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
                         )
                       )
                     ),
-                    signe_par
+                    deliver(
+                      id,
+                      nom,
+                      postnom,
+                      prenom,
+                      role
+                    ),
+                    email_receiver
                   `)
                 .eq('id', diplomaId)
                 .single();
@@ -283,6 +328,7 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
                     toast.error('Erreur lors de la mise à jour du statut d\'authentification.');
                 } else {
                     toast.success('Diplôme authentifié avec succès !');
+                    handleSendEmail(diplomaData);
                     fetchDiplomas();
                     diplomaData.est_authentique = true;
                     setSelectedDiploma(diplomaData);
@@ -433,15 +479,24 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
         setSelectedDepartment('');
         setSelectedPromotion('');
         setSearchTerm('');
+        setAuthenticationStatus('all');
     };
 
     const filteredDiplomas = diplomas.filter((diploma) => {
         const searchString = searchTerm.toLowerCase();
-        return (
+        const matchesSearchTerm =
             diploma.libelle_titre.toLowerCase().includes(searchString) ||
             diploma.etudiant?.nom.toLowerCase().includes(searchString) ||
-            diploma.etudiant?.prenom.toLowerCase().includes(searchString)
-        );
+            diploma.etudiant?.prenom.toLowerCase().includes(searchString);
+
+        let matchesAuthenticationStatus = true;
+        if (authenticationStatus === 'authenticated') {
+            matchesAuthenticationStatus = diploma.est_authentique === true;
+        } else if (authenticationStatus === 'unauthenticated') {
+            matchesAuthenticationStatus = diploma.est_authentique === false;
+        }
+
+        return matchesSearchTerm && matchesAuthenticationStatus;
     });
 
     return (
@@ -536,6 +591,18 @@ export function AuthenticateDiploma({ profile }: AuthenticateDiplomaProps) {
                         className="block w-full pl-10 pr-3 py-2 border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2"
                         placeholder="Rechercher un diplôme..."
                     />
+                </div>
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700">Statut d'authentification</label>
+                    <select
+                        value={authenticationStatus}
+                        onChange={(e) => setAuthenticationStatus(e.target.value as 'all' | 'authenticated' | 'unauthenticated')}
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border p-2"
+                    >
+                        <option value="all">Tous</option>
+                        <option value="authenticated">Authentifiés</option>
+                        <option value="unauthenticated">Non authentifiés</option>
+                    </select>
                 </div>
             </div>
 

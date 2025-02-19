@@ -31,7 +31,8 @@ export async function fetchPromotionsByDepartmentId(departmentId: string) {
         .select<string, Promotion>(`
             id,
             libelle_promotion,
-            departement_id
+            departement_id,
+            option
         `)
         .eq("departement_id", departmentId);
 }

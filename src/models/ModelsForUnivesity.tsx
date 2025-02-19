@@ -11,6 +11,7 @@ export interface Department {
 export interface Promotion {
     id: string;
     libelle_promotion: string;
+    departement_id: string;
     option: string;
 }
 

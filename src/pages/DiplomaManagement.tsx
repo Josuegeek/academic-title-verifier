@@ -4,7 +4,7 @@ import { DiplomaJointStudent, Faculty, NewDiploma, StudentJointPromotion } from 
 import { addDiploma, deleteDiploma, fetchDiplomasJointStudent, updateDiploma } from '../api/Diploma';
 import { fetchStudentsJointPromotion } from '../api/Student';
 import { toast } from 'react-toastify';
-import emailjs, { EmailJSResponseStatus } from '@emailjs/browser';
+import emailjs from '@emailjs/browser';
 import { fetchFaculties } from '../api/Faculty';
 import { supabase } from '../lib/supabase';
 import AddDiplomaModal from '../components/AddDiplomaModal';
@@ -197,6 +197,20 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
       return;
     }
 
+    try {
+      const { data, error } = await supabase
+      .from('titre_academique')
+      .update({ email_receiver: emailAddress })
+      .eq('id', selectedDiplomaForEmail.id);
+
+      if (error) throw error;
+
+      console.log('Diploma email_receiver updated:', data);
+    } catch (error) {
+      console.error('Error updating diploma email_receiver:', error);
+      toast.error('Erreur lors de la mise à jour de l\'email du récepteur.');
+    }
+
     setIsSubmitting(true);
     try {
       
@@ -258,7 +272,7 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
             type="submit"
             className="inline-flex m-2 mr-4 items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-blue-800 bg-indigo-200 hover:bg-indigo-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            <Loader className="h-5 w-5" />
+            <Loader className={`h-5 w-5 ${loading ? 'animate-spin' : '' }`} />
             Actualiser
           </button>
         </div>
