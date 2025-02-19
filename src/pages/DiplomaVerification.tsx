@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Upload, QrCode } from 'lucide-react';
 import { toast } from 'react-toastify';
 import jsQR from 'jsqr';
 import { Profile } from '../types';
+import { useNavigate } from 'react-router-dom';
 import { DiplomaInfo } from '../components/DiplomaInfo';
-
-// Import pdfjs-dist
 import * as pdfjsLib from 'pdfjs-dist';
 import { RenderParameters } from 'pdfjs-dist/types/src/display/api';
 // Set workerSrc path
@@ -56,6 +55,15 @@ export function DiplomaVerification({ profile }: DiplomaVerificationProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedDiploma, setSelectedDiploma] = useState<DiplomaData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const navigate = useNavigate();
+
+  useEffect(() => {
+      if (!profile) {
+        navigate('/');
+        return;
+      } 
+    }, [profile, navigate]);
 
   const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault();

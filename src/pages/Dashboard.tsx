@@ -52,6 +52,7 @@ export function Dashboard({ profile }: DashboardProps) {
 
   useEffect(() => {
     if (!profile && !profileLoading) {
+      navigate('/');
       return;
     } else if (profile) {
       setProfileLoading(false);
