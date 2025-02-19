@@ -18,7 +18,9 @@ export async function fetchDiplomasJointStudent() {
                 postnom,
                 prenom
             ),
-            est_authentique
+            est_authentique,
+            annee_academique,
+            signe_par
             `
         ).order('created_at', { ascending: false });
 }
@@ -39,7 +41,9 @@ export async function fetchDiplomaByIdJointStudent(id: string) {
                 postnom,
                 prenom
             ),
-            est_authentique
+            est_authentique,
+            annee_academique,
+            signe_par
         `)
         .eq("id", id)
         .single();

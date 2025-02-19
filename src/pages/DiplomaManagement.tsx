@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Edit, Eye, Loader, Plus, Search, Trash2 } from 'lucide-react';
+import { Edit, Eye, Loader, Mail, Plus, Search, Trash2 } from 'lucide-react';
 import { DiplomaJointStudent, Faculty, NewDiploma, StudentJointPromotion } from '../models/ModelsForUnivesity';
-import { addDiploma, deleteDiploma, updateDiploma } from '../api/Diploma';
+import { addDiploma, deleteDiploma, fetchDiplomasJointStudent, updateDiploma } from '../api/Diploma';
 import { fetchStudentsJointPromotion } from '../api/Student';
 import { toast } from 'react-toastify';
+import emailjs, { EmailJSResponseStatus } from '@emailjs/browser';
 import { fetchFaculties } from '../api/Faculty';
 import { supabase } from '../lib/supabase';
 import AddDiplomaModal from '../components/AddDiplomaModal';
 import type { Profile } from '../types';
 import { useNavigate } from 'react-router-dom';
+import EmailModal from '../components/EmailModal';
 
 interface DiplomaManagementProps {
   profile: Profile | null;
@@ -27,6 +29,8 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
   const [currentDiploma, setCurrentDiploma] = useState<NewDiploma | null>(null);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [selectedDiplomaForEmail, setSelectedDiplomaForEmail] = useState<DiplomaJointStudent | null>(null);
 
   useEffect(() => {
     if (profile?.role !== 'university_staff') {
@@ -44,33 +48,8 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
   async function fetchDiplomas() {
     setLoading(true);
     try {
-      let query = supabase
-        .from("titre_academique")
-        .select<string, DiplomaJointStudent>(
-          `
-            id,
-            libelle_titre,
-            fichier_url,
-            qr_code,
-            date_delivrance,
-            lieu,
-            etudiant (
-                id,
-                nom,
-                postnom,
-                prenom
-            ),
-            est_authentique,
-            annee_academique,
-            signe_par
-            `
-        ).order('created_at', { ascending: false });
 
-      if (profile?.role === 'university_staff' && profile?.universite_id) {
-        query = query.eq('universite_id', profile.universite_id);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await fetchDiplomasJointStudent();
 
       if (error) throw error;
       setDiplomas(data || []);
@@ -202,6 +181,55 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
     }
   };
 
+  const handleOpenEmailModal = (diploma: DiplomaJointStudent) => {
+    setSelectedDiplomaForEmail(diploma);
+    setIsEmailModalOpen(true);
+  };
+
+  const handleCloseEmailModal = () => {
+    setIsEmailModalOpen(false);
+    setSelectedDiplomaForEmail(null);
+  };
+
+  const handleSendEmail = async (emailAddress: string) => {
+    if (!selectedDiplomaForEmail) {
+      toast.error('Aucun diplôme sélectionné.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      
+      const emailjsSender= await emailjs.send('service_bb7rnfa', 'template_96e6obq', {
+
+        to_email: emailAddress,
+        to_name: selectedDiplomaForEmail.etudiant?.nom + ' ' + selectedDiplomaForEmail.etudiant?.prenom,
+        message: `Veuillez trouver le lien de votre ${selectedDiplomaForEmail.libelle_titre} ici : ${selectedDiplomaForEmail.fichier_url}.`,
+        from_email: '',
+        from_name: 'DiplomaVerifier',
+        diploma_title: selectedDiplomaForEmail.libelle_titre,
+      }, {
+        publicKey:'SREv3TVssgSmICarN',
+      }) 
+
+      console.log(emailjsSender);
+      
+
+      if (emailjsSender.status !== 200) {
+        throw new Error('Erreur lors de l\'envoi de l\'email.');
+      } else {
+        console.log('Email sent successfully:');
+        toast.success('Email envoyé avec succès !');
+      }
+    } catch (error) {
+      console.error('Error calling function:', error);
+      toast.error('Erreur lors de l\'envoi d\'email.');
+    } finally {
+      setIsSubmitting(false);
+      handleCloseEmailModal();
+    }
+  };
+
   const filteredDiplomas = diplomas.filter((diploma) => {
     const searchString = searchTerm.toLowerCase();
     return (
@@ -224,7 +252,7 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
       </header>
 
       <div className="bg-white shadow rounded-lg">
-      <div className="flex justify-end">
+        <div className="flex justify-end">
           <button
             onClick={() => fetchDiplomas()}
             type="submit"
@@ -313,19 +341,25 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <button
                                 onClick={() => handleShowDiplomaFileClick(diploma)}
-                                className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                className="text-indigo-600 hover:text-indigo-900 mr-4 p-2 border rounded-lg"
                               >
                                 <Eye className="h-5 w-5" />
                               </button>
                               <button
+                                onClick={() => handleOpenEmailModal(diploma)}
+                                className="text-indigo-600 hover:text-indigo-900 mr-4 p-2 border rounded-lg"
+                              >
+                                <Mail className="h-5 w-5" />
+                              </button>
+                              <button
                                 onClick={() => handleEditDiplomaClick(diploma)}
-                                className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                className="text-indigo-600 hover:text-indigo-900 mr-4 p-2 border rounded-lg"
                               >
                                 <Edit className="h-5 w-5" />
                               </button>
                               <button
                                 onClick={() => handleDeleteDiploma(diploma.id)}
-                                className="text-red-600 hover:text-red-900"
+                                className="text-red-600 hover:text-red-900 p-2 border rounded-lg"
                               >
                                 <Trash2 className="h-5 w-5" />
                               </button>
@@ -341,6 +375,15 @@ export function DiplomaManagement({ profile }: DiplomaManagementProps) {
           )}
         </div>
       </div>
+
+      <EmailModal
+        isOpen={isEmailModalOpen}
+        onClose={handleCloseEmailModal}
+        onSendEmail={handleSendEmail}
+        isSubmitting={isSubmitting}
+        diploma={selectedDiplomaForEmail}
+      />
+
       {/* Add/Edit Diploma Modal */}
       <AddDiplomaModal
         isSubmitting={isSubmitting}

@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 
 interface UserProfile {
   id: string;
-  role: 'admin' | 'university_staff' | 'verifier';
+  role: 'admin' | 'university_staff' | 'verifier'| 'esu_staff';
   nom: string;
   postnom: string;
   prenom: string;
@@ -203,8 +203,9 @@ export function UserManagement({ profile }: UserManagementProps) {
                                 className="p-2 border border-blue-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm rounded-md"
                               >
                                 <option value="admin">Admin</option>
-                                <option value="university_staff">University Staff</option>
-                                <option value="verifier">Verifier</option>
+                                <option value="university_staff">Agent de l'université</option>
+                                <option value="esu_staff">Ministère de l'ESU</option>
+                                <option value="verifier">Visiteur</option>
                               </select>
                             ) : (
                               <div className="text-sm text-gray-900">{user.role}</div>
